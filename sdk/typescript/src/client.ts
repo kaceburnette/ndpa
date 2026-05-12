@@ -77,10 +77,13 @@ export class Client {
   /**
    * Fetch the top-K past conversations relevant to the current session.
    * This is the read side of NDPA — what the AI should know before responding.
+   *
+   * For platforms (multi-tenant integrations): pass `endUserId` to scope
+   * predictions to one of YOUR users.
    */
   async getPredictions(
     sessionId: string = "",
-    options: { query?: string; k?: number } = {},
+    options: { query?: string; k?: number; endUserId?: string } = {},
   ): Promise<{
     predictions: Array<{
       session_id: string;
@@ -93,6 +96,7 @@ export class Client {
       started_at: string;
     }>;
     candidates_considered?: number;
+    elapsed_ms?: number;
     reason?: string;
   }> {
     const payload: Record<string, unknown> = {
@@ -100,16 +104,22 @@ export class Client {
       k: options.k ?? 5,
     };
     if (options.query !== undefined) payload.query = options.query;
+    if (options.endUserId !== undefined) payload.end_user_id = options.endUserId;
     const result = await this.postPath("/predictions", payload);
     return (result as any) || { predictions: [] };
   }
 
-  async logEvents(sessionId: string, events: Event[]): Promise<void> {
+  async logEvents(
+    sessionId: string,
+    events: Event[],
+    options: { endUserId?: string } = {},
+  ): Promise<void> {
     if (!events || events.length === 0) return;
     for (let i = 0; i < events.length; i += BATCH_SIZE_LIMIT) {
       const chunk = events.slice(i, i + BATCH_SIZE_LIMIT);
       const payload: Record<string, unknown> = { session_id: sessionId, events: chunk };
       if (this.platform) payload.platform = this.platform;
+      if (options.endUserId !== undefined) payload.end_user_id = options.endUserId;
       if (this.asyncSend) {
         void this.postPath("/events", payload).catch((e) => this.onError?.(e as Error));
       } else {

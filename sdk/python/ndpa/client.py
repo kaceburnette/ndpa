@@ -72,16 +72,30 @@ class Client:
             event["source_path"] = source_path
         self.log_events(session_id, [event])
 
-    def log_events(self, session_id: str, events: Iterable[dict]) -> None:
-        """Send a batch of events for one session. Up to 1000 per call."""
+    def log_events(
+        self,
+        session_id: str,
+        events: Iterable[dict],
+        *,
+        end_user_id: Optional[str] = None,
+    ) -> None:
+        """
+        Send a batch of events for one session. Up to 1000 per call.
+
+        For platforms (multi-tenant integrations): pass `end_user_id` to scope
+        events to one of YOUR users. Your platform key authenticates the call;
+        end_user_id partitions storage and prediction queries.
+        """
         evs = list(events)
         if not evs:
             return
         for i in range(0, len(evs), BATCH_SIZE_LIMIT):
             chunk = evs[i : i + BATCH_SIZE_LIMIT]
-            payload = {"session_id": session_id, "events": chunk}
+            payload: dict[str, Any] = {"session_id": session_id, "events": chunk}
             if self.platform:
                 payload["platform"] = self.platform
+            if end_user_id is not None:
+                payload["end_user_id"] = end_user_id
             self._send(payload)
 
     def log_exchange(
@@ -105,16 +119,22 @@ class Client:
         *,
         query: Optional[str] = None,
         k: int = 5,
+        end_user_id: Optional[str] = None,
     ) -> dict:
         """
         Get top-K relevant past conversations for this session.
 
         Returns a dict with `predictions` (list of {session_id, content, score, ...}).
         This is the read side of NDPA — what the AI should know before responding.
+
+        For platforms (multi-tenant integrations): pass `end_user_id` to scope
+        predictions to one of YOUR users.
         """
         payload: dict[str, Any] = {"session_id": session_id, "k": int(k)}
         if query is not None:
             payload["query"] = query
+        if end_user_id is not None:
+            payload["end_user_id"] = end_user_id
         resp = self._post_path("/predictions", payload, force_sync=True)
         return resp or {"predictions": []}
 

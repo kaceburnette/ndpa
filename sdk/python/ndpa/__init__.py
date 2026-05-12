@@ -8,5 +8,5 @@ NDPA — predictive memory layer for AI.
 
 from .client import Client, NDPAError
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = ["Client", "NDPAError"]
