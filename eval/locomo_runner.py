@@ -24,6 +24,7 @@ from eval.external_benchmark_utils import (
     RateLimiter,
     aggregate_hits,
     append_note,
+    call_with_retries,
     download_json,
     load_ndpa_client,
     prediction_session_ids,
@@ -114,7 +115,10 @@ def run(args: argparse.Namespace) -> dict:
             if date_text:
                 events[0]["source_path"] = f"locomo:{date_text}"
             limiter.wait()
-            client.log_events(session_id, events, end_user_id=end_user_id)
+            call_with_retries(
+                lambda: client.log_events(session_id, events, end_user_id=end_user_id),
+                attempts=args.retries,
+            )
 
         with ThreadPoolExecutor(max_workers=args.ingest_workers) as pool:
             futures = [pool.submit(ingest_session, session_info) for session_info in sessions]
@@ -126,11 +130,14 @@ def run(args: argparse.Namespace) -> dict:
                 break
             question_count += 1
 
-            result = client.get_predictions(
-                session_id=f"locomo_query_{sample_id}_{qa_index}",
-                query=str(qa.get("question") or ""),
-                k=5,
-                end_user_id=end_user_id,
+            result = call_with_retries(
+                lambda: client.get_predictions(
+                    session_id=f"locomo_query_{sample_id}_{qa_index}",
+                    query=str(qa.get("question") or ""),
+                    k=5,
+                    end_user_id=end_user_id,
+                ),
+                attempts=args.retries,
             )
             predicted = prediction_session_ids(result)
             truth = evidence_session_ids(sample_id, qa)
@@ -178,6 +185,7 @@ def main() -> None:
     parser.add_argument("--force-download", action="store_true")
     parser.add_argument("--requests-per-minute", type=int, default=540)
     parser.add_argument("--ingest-workers", type=int, default=8)
+    parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument("--progress-every", type=int, default=25)
     args = parser.parse_args()

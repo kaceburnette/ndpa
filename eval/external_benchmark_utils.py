@@ -108,6 +108,19 @@ def prediction_session_ids(result: dict) -> list[str]:
     return ids
 
 
+def call_with_retries(fn, *, attempts: int = 3, base_sleep: float = 2.0):
+    last_exc = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exc = exc
+            if attempt >= attempts:
+                break
+            time.sleep(base_sleep * attempt)
+    raise last_exc
+
+
 def empty_hit_counts() -> dict[str, int]:
     return {f"hit@{k}": 0 for k in TOP_KS}
 
