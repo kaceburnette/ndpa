@@ -1,87 +1,149 @@
-import json
-import sqlite3
-from pathlib import Path
+"""
+NDP object store — pure Supabase.
+
+Scoring uses a single batch query (get_all) so we pay one network
+round-trip per hook invocation, not one per file. Silent-fail
+everywhere — a Supabase error must never crash the hook.
+"""
+
+import time
+import threading
 from typing import Optional
 
 from .schema import NDPObject
 
-NDP_DIR = Path.home() / ".ndp"
+
+def _client():
+    from .config import load_config
+    from supabase import create_client
+    cfg = load_config()
+    return create_client(cfg["supabase_url"], cfg["supabase_key"]), cfg["user_id"]
+
+
+def _row_to_obj(row: dict) -> NDPObject:
+    return NDPObject(
+        id=row["id"],
+        source_type=row.get("source_type", "file"),
+        source_path=row.get("source_path", ""),
+        tier=row.get("tier", "cold"),
+        freshness=row.get("freshness", time.time()),
+        token_estimate=row.get("token_estimate", 0),
+        prior_usefulness=row.get("prior_usefulness", 0.5),
+        summary=row.get("summary", ""),
+        tags=row.get("tags") or [],
+        relationships=row.get("relationships") or [],
+        access_history=row.get("access_history") or [],
+    )
+
+
+def _async(fn, *args):
+    t = threading.Thread(target=fn, args=args, daemon=True)
+    t.start()
+    return t
 
 
 class NDPStore:
-    def __init__(self, db_path: Optional[Path] = None):
-        self.db_path = db_path or NDP_DIR / "index.db"
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_db()
-
-    def _conn(self):
-        return sqlite3.connect(self.db_path)
-
-    def _init_db(self):
-        with self._conn() as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS objects (
-                    id TEXT PRIMARY KEY,
-                    source_path TEXT,
-                    type TEXT,
-                    tier TEXT,
-                    freshness REAL,
-                    token_estimate INTEGER,
-                    prior_usefulness REAL,
-                    data JSON
-                )
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_path ON objects(source_path)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_tier ON objects(tier)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_freshness ON objects(freshness)")
-
     def upsert(self, obj: NDPObject):
-        # Content is never persisted — always read fresh from disk when staging.
-        # Keeps the DB as a pure metadata index regardless of project size.
-        d = obj.to_dict()
-        d["content"] = None
-        with self._conn() as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO objects VALUES (?,?,?,?,?,?,?,?)",
-                (
-                    obj.id, obj.source_path, obj.type, obj.tier,
-                    obj.freshness, obj.token_estimate, obj.prior_usefulness,
-                    json.dumps(d),
-                ),
+        """Async write — never blocks the hook."""
+        def _write():
+            try:
+                client, user_id = _client()
+                client.table("ndp_objects").upsert({
+                    "id": obj.id,
+                    "user_id": user_id,
+                    "source_type": obj.source_type,
+                    "source_path": obj.source_path,
+                    "tier": obj.tier,
+                    "freshness": obj.freshness,
+                    "token_estimate": obj.token_estimate,
+                    "prior_usefulness": obj.prior_usefulness,
+                    "summary": obj.summary,
+                    "tags": obj.tags,
+                    "relationships": obj.relationships,
+                    "access_history": obj.access_history,
+                }).execute()
+            except Exception:
+                pass
+        _async(_write)
+
+    def get_all(self) -> dict:
+        """Single batch query: returns {source_path: NDPObject}. One round-trip."""
+        try:
+            client, user_id = _client()
+            result = (
+                client.table("ndp_objects")
+                .select("*")
+                .eq("user_id", user_id)
+                .execute()
             )
+            return {r["source_path"]: _row_to_obj(r) for r in result.data}
+        except Exception:
+            return {}
 
     def get_by_path(self, path: str) -> Optional[NDPObject]:
-        with self._conn() as conn:
-            row = conn.execute(
-                "SELECT data FROM objects WHERE source_path = ?", (path,)
-            ).fetchone()
-        return NDPObject.from_dict(json.loads(row[0])) if row else None
+        try:
+            client, user_id = _client()
+            result = (
+                client.table("ndp_objects")
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("source_path", path)
+                .limit(1)
+                .execute()
+            )
+            if result.data:
+                return _row_to_obj(result.data[0])
+        except Exception:
+            pass
+        return None
 
     def get_by_tier(self, tier: str) -> list:
-        with self._conn() as conn:
-            rows = conn.execute(
-                "SELECT data FROM objects WHERE tier = ? ORDER BY prior_usefulness DESC",
-                (tier,),
-            ).fetchall()
-        return [NDPObject.from_dict(json.loads(r[0])) for r in rows]
+        try:
+            client, user_id = _client()
+            result = (
+                client.table("ndp_objects")
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("tier", tier)
+                .order("prior_usefulness", desc=True)
+                .execute()
+            )
+            return [_row_to_obj(r) for r in result.data]
+        except Exception:
+            return []
 
     def set_tier(self, obj_id: str, tier: str):
-        with self._conn() as conn:
-            conn.execute(
-                "UPDATE objects SET tier = ?, data = json_set(data, '$.tier', ?) WHERE id = ?",
-                (tier, tier, obj_id),
-            )
+        try:
+            client, user_id = _client()
+            client.table("ndp_objects").update({"tier": tier}).eq("id", obj_id).eq("user_id", user_id).execute()
+        except Exception:
+            pass
 
     def all_paths(self) -> list:
-        with self._conn() as conn:
-            return [r[0] for r in conn.execute("SELECT source_path FROM objects").fetchall()]
+        try:
+            client, user_id = _client()
+            result = (
+                client.table("ndp_objects")
+                .select("source_path")
+                .eq("user_id", user_id)
+                .execute()
+            )
+            return [r["source_path"] for r in result.data]
+        except Exception:
+            return []
 
     def stats(self) -> dict:
-        with self._conn() as conn:
-            total = conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0]
-            by_tier = dict(
-                conn.execute(
-                    "SELECT tier, COUNT(*) FROM objects GROUP BY tier"
-                ).fetchall()
+        try:
+            client, user_id = _client()
+            result = (
+                client.table("ndp_objects")
+                .select("tier")
+                .eq("user_id", user_id)
+                .execute()
             )
-        return {"total": total, "by_tier": by_tier}
+            by_tier: dict = {}
+            for r in result.data:
+                by_tier[r["tier"]] = by_tier.get(r["tier"], 0) + 1
+            return {"total": len(result.data), "by_tier": by_tier}
+        except Exception:
+            return {"total": 0, "by_tier": {}}

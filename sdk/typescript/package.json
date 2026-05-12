@@ -1,0 +1,27 @@
+{
+  "name": "ndpa",
+  "version": "0.1.0",
+  "description": "Predictive memory layer for AI — stop retrieving, start predicting.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["ai", "memory", "llm", "context", "prediction", "agents"],
+  "author": "Kace Burnette",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kaceburnette/ndp"
+  }
+}

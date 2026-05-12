@@ -5,11 +5,13 @@ NDP event daemon.
 Runs on every PostToolUse and UserPromptSubmit event.
 
 Sequence on file tool calls:
-  1. Log event to session JSONL
-  2. Rebuild workflow state from session log
-  3. Score all indexed candidates with kernel
-  4. Promote top 3 → hot, next 7 → warm, rest → cold
-  5. Write hot-tier content to ~/.ndp/context.md
+  1. Log event to local JSONL (never lost, works offline)
+  2. Write event to Supabase ndp_events (background thread)
+  3. Upsert session row in ndp_sessions
+  4. Rebuild workflow state from session log
+  5. Score candidates with kernel
+  6. Promote top 3 → hot, next 7 → warm, rest → cold
+  7. Write hot-tier content to ~/.ndp/context.md
 
 Never raises — a crash here must never break a Claude Code session.
 """
@@ -31,7 +33,6 @@ HOT_K = 3
 WARM_K = 7
 TOKEN_BUDGET = 3000
 
-# Never stage these in hot tier — they're infra, not workflow context
 EXCLUDE_FROM_HOT = {
     "settings.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
     ".gitignore", ".env", ".env.local", "CLAUDE.md",
@@ -48,6 +49,8 @@ def extract_paths(tool_name: str, tool_input: dict) -> list:
         paths.extend(raw)
     return [str(p) for p in paths if p]
 
+
+# ── Local JSONL (always written, offline fallback) ───────────────────────────
 
 def log_event(session_id: str, record: dict):
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
@@ -93,6 +96,70 @@ def load_state(session_id: str) -> dict:
     }
 
 
+# ── Conversation capture ──────────────────────────────────────────────────────
+
+def _append_conv(session_id: str, role: str, text: str):
+    """Append a turn to the local conversation buffer."""
+    conv_file = SESSION_DIR / f"{session_id}.conv"
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    with open(conv_file, "a") as f:
+        f.write(f"[{role}] {text}\n\n")
+
+
+def _sync_conversation(session_id: str, cwd: str, ts: float):
+    """No-op now — conversation content rides on the events posted via the API."""
+    return
+
+
+# ── Ingestion API write (dogfood: same path as every other platform) ─────────
+
+def _supabase_write(session_id: str, ts: float, tool_name: str,
+                    paths: list, cwd: str, is_prompt: bool, turn_idx: int,
+                    prompt_text: str = ""):
+    """Post events through the public Ingestion API. Same path SDKs use."""
+    try:
+        from ndp.config import load_config, is_configured
+        if not is_configured():
+            return
+        cfg = load_config()
+        api_key = cfg.get("api_key")
+        if not api_key:
+            return
+
+        sdk_path = Path(__file__).parent.parent / "sdk" / "python"
+        if str(sdk_path) not in sys.path:
+            sys.path.insert(0, str(sdk_path))
+        from ndpa import Client
+
+        client = Client(api_key=api_key, platform="claude_code", async_send=False, timeout=3.0)
+
+        events = []
+        if is_prompt and prompt_text:
+            events.append({"role": "user", "content": prompt_text, "ts": ts})
+        elif paths:
+            for p in paths:
+                events.append({
+                    "role": "tool",
+                    "tool_name": tool_name,
+                    "source_path": p,
+                    "ts": ts,
+                })
+
+        if events:
+            client.log_events(session_id, events)
+    except Exception:
+        pass
+
+
+def fire_supabase(session_id: str, ts: float, tool_name: str,
+                  paths: list, cwd: str, is_prompt: bool, turn_idx: int,
+                  prompt_text: str = ""):
+    """Call synchronously — threading causes urllib teardown races on sys.exit."""
+    _supabase_write(session_id, ts, tool_name, paths, cwd, is_prompt, turn_idx, prompt_text)
+
+
+# ── Kernel scoring + context staging ─────────────────────────────────────────
+
 def score_and_stage(session_id: str):
     from ndp.store import NDPStore
     from ndp.schema import NDPObject
@@ -100,13 +167,14 @@ def score_and_stage(session_id: str):
 
     store = NDPStore()
     state = load_state(session_id)
-    known_paths = store.all_paths()
 
-    # Extend state with all indexed-but-unaccessed candidates
+    # One network round-trip to get everything we know about this user
+    known = store.get_all()  # {path: NDPObject}
+
     seen = {a["path"] for a in state["accesses"]}
     extended_accesses = list(state["accesses"]) + [
         {"path": p, "count": 0, "last_turn": -1}
-        for p in known_paths if p not in seen
+        for p in known if p not in seen
     ]
     extended_state = dict(state, accesses=extended_accesses)
 
@@ -118,7 +186,7 @@ def score_and_stage(session_id: str):
 
     for path, score in predictions:
         p = Path(path)
-        obj = store.get_by_path(path)
+        obj = known.get(path)
 
         if obj is None:
             if not p.exists():
@@ -154,8 +222,6 @@ def score_and_stage(session_id: str):
 
 
 def _write_context(store):
-    from ndp.store import NDPStore
-
     hot = store.get_by_tier("hot")
     if not hot:
         CONTEXT_FILE.unlink(missing_ok=True)
@@ -175,6 +241,8 @@ def _write_context(store):
     CONTEXT_FILE.write_text("\n".join(parts))
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main():
     try:
         raw = sys.stdin.read()
@@ -185,33 +253,56 @@ def main():
     session_id = data.get("session_id", "unknown")
     ts = time.time()
     tool_name = data.get("tool_name", "")
+    cwd = data.get("cwd", "")
 
-    # Log the event
+    is_file_event = tool_name in FILE_TOOLS
+    is_prompt_event = "prompt" in data and not tool_name
+
+    paths = []
+    if is_file_event:
+        paths = extract_paths(tool_name, data.get("tool_input", {}))
+
+    # Load state first so we have turn_idx for Supabase
+    state = load_state(session_id) if is_file_event else {"turn_idx": 0}
+    turn_idx = state.get("turn_idx", 0)
+
+    # 1. Local JSONL write + conversation capture
     try:
-        if tool_name in FILE_TOOLS:
-            paths = extract_paths(tool_name, data.get("tool_input", {}))
-            if paths:
-                log_event(session_id, {
-                    "event": "tool_use",
-                    "ts": ts,
-                    "session_id": session_id,
-                    "tool": tool_name,
-                    "paths": paths,
-                    "cwd": data.get("cwd", ""),
-                })
-        elif "prompt" in data and not tool_name:
+        if is_file_event and paths:
+            log_event(session_id, {
+                "event": "tool_use",
+                "ts": ts,
+                "session_id": session_id,
+                "tool": tool_name,
+                "paths": paths,
+                "cwd": cwd,
+            })
+            _append_conv(session_id, "tool", f"{tool_name}: {', '.join(paths)}")
+        elif is_prompt_event:
+            prompt_text = str(data.get("prompt", ""))
             log_event(session_id, {
                 "event": "turn_start",
                 "ts": ts,
                 "session_id": session_id,
-                "prompt": str(data.get("prompt", ""))[:500],
-                "cwd": data.get("cwd", ""),
+                "prompt": prompt_text[:500],
+                "cwd": cwd,
             })
+            _append_conv(session_id, "user", prompt_text)
     except Exception:
         pass
 
-    # Run kernel + stage (only on file tool calls)
-    if tool_name in FILE_TOOLS:
+    # 2. Ingestion API write (sync, before score_and_stage to avoid teardown races)
+    if is_file_event or is_prompt_event:
+        prompt_text = str(data.get("prompt", "")) if is_prompt_event else ""
+        try:
+            fire_supabase(
+                session_id, ts, tool_name, paths, cwd, is_prompt_event, turn_idx, prompt_text
+            )
+        except Exception:
+            pass
+
+    # 3. Kernel scoring + staging (only on file tool calls)
+    if is_file_event:
         try:
             score_and_stage(session_id)
         except Exception:

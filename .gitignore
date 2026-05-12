@@ -1,9 +1,37 @@
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+
+# TypeScript / Node
+node_modules/
+sdk/typescript/dist/
+sdk/typescript/dist-examples/
+*.log
+
+# Local NDP data (never commit user session logs)
+.ndp/
+*.jsonl.bak
+
+# Build artifacts
 dist/
 build/
-.DS_Store
+
+# Databases (legacy SQLite — gone but keep ignored)
 *.db
 *.db-shm
 *.db-wal
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Env
+.env
+.env.local
