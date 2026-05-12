@@ -1,0 +1,8 @@
+{
+  "benchmark": "LMSYS-Chat-1M validation",
+  "elapsed_sec": 0.0,
+  "metrics": {},
+  "reason": "Python package `datasets` is not installed",
+  "rows": [],
+  "status": "blocked"
+}
