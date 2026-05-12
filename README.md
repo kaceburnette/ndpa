@@ -45,6 +45,20 @@ The **novel topic** number is the honest one — predicting topics introduced
 later in a conversation that don't appear in its history. This is closest
 to "predict context the user is about to need but hasn't asked for yet."
 
+## External Benchmarks
+
+Runners are in place, but full external numbers are not published yet:
+
+| Benchmark | Runner | Status |
+|-----------|--------|--------|
+| LongMemEval | `python3 -m eval.longmemeval_runner` | Ready; writes `eval/longmemeval_results.json` with hit@1/3/5 by category |
+| LoCoMo | `python3 -m eval.locomo_runner` | Ready against public `locomo10.json`; writes `eval/locomo_results.json` |
+| LMSYS-Chat-1M | `python3 -m eval.lmsys_validation --input sample.jsonl` | Blocked on this machine: gated parquet dataset needs an accepted local sample or optional `datasets` install |
+
+No Mem0/Zep/MemGPT comparison claim is made here until a full run produces
+durable results. The internal held-out future result remains **71.8% hit@5**
+on 156 samples.
+
 ---
 
 ## 60-second quickstart

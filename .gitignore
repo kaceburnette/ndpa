@@ -18,6 +18,11 @@ sdk/typescript/dist-examples/
 .ndp/
 *.jsonl.bak
 
+# Downloaded benchmark datasets/results from local eval runs
+eval/data/
+eval/longmemeval_results.json
+eval/locomo_results.json
+
 # Build artifacts
 dist/
 build/
