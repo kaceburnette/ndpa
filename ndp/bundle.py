@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import time
 import zipfile
@@ -130,8 +131,151 @@ def export_session(session_id: str, out_path: Path, include_content: bool = Fals
         "objects": len(objects),
     }
 
+    # Write bundle to disk
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_bundle_zip(out_path, manifest, session_id, local_events, sb_events, conv_content, objects)
+    return manifest
+
+
+def export_session_to_bytes(session_id: str, include_content: bool = False) -> tuple[bytes, dict]:
+    """
+    Same as export_session but returns the bundle as bytes.
+    Used by TierBackend implementations that don't have a filesystem.
+    """
+    # Reuse the export logic, write to in-memory buffer instead of disk
+    buf = io.BytesIO()
+    # We need to replicate the manifest building — call export_session into a temp path
+    # then read back. Simpler: do the inline build here.
+    from ndp.config import load_config, is_configured
+    if not is_configured():
+        raise RuntimeError("Run `python3 -m ndp.config` first")
+    cfg = load_config()
+    from supabase import create_client
+    client = create_client(cfg["supabase_url"], cfg["supabase_key"])
+    user_id = cfg["user_id"]
+
+    manifest = {
+        "ndp_bundle_version": BUNDLE_VERSION,
+        "exported_at": time.time(),
+        "user_id_hash": _short_hash(user_id),
+        "session_id": session_id,
+        "platform": "claude_code",
+        "include_content": include_content,
+    }
+
+    session_log = SESSION_DIR / f"{session_id}.jsonl"
+    local_events = []
+    if session_log.exists():
+        for line in session_log.read_text(errors="replace").splitlines():
+            try:
+                local_events.append(json.loads(line))
+            except Exception:
+                continue
+
+    try:
+        sb_events = (client.table("ndp_events").select("*")
+                     .eq("user_id", user_id).eq("session_id", session_id)
+                     .order("ts", desc=False).execute()).data or []
+    except Exception:
+        sb_events = []
+
+    conv_content = ""
+    try:
+        conv = (client.table("ndp_conversations")
+                .select("content, started_at, platform")
+                .eq("user_id", user_id).eq("session_id", session_id)
+                .maybe_single().execute())
+        if conv and conv.data:
+            conv_content = conv.data.get("content") or ""
+            manifest["platform"] = conv.data.get("platform", manifest["platform"])
+            manifest["started_at"] = conv.data.get("started_at")
+    except Exception:
+        pass
+
+    try:
+        objs_res = (client.table("ndp_objects").select("*")
+                    .eq("user_id", user_id).execute())
+        objects = objs_res.data or []
+    except Exception:
+        objects = []
+    if not include_content:
+        for o in objects:
+            o.pop("content", None)
+
+    manifest["counts"] = {
+        "events_local": len(local_events), "events_remote": len(sb_events),
+        "conversation_chars": len(conv_content), "objects": len(objects),
+    }
+
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("manifest.json", json.dumps(manifest, indent=2, default=str))
+        zf.writestr(f"sessions/{session_id}.json", json.dumps({
+            "session_id": session_id, "local_events": local_events, "remote_events": sb_events,
+        }, indent=2, default=str))
+        if conv_content:
+            zf.writestr(f"conversations/{session_id}.txt", conv_content)
+        for obj in objects:
+            obj_id = obj.get("id", _short_hash(obj.get("source_path", str(time.time()))))
+            zf.writestr(f"objects/{obj_id}.json", json.dumps(obj, indent=2, default=str))
+
+    return buf.getvalue(), manifest
+
+
+def import_bundle_bytes(bundle_bytes: bytes) -> dict:
+    """Import a .ndp bundle from raw bytes (no filesystem needed)."""
+    from ndp.config import load_config, is_configured
+    if not is_configured():
+        raise RuntimeError("Run `python3 -m ndp.config` first")
+    cfg = load_config()
+    from supabase import create_client
+    client = create_client(cfg["supabase_url"], cfg["supabase_key"])
+    user_id = cfg["user_id"]
+
+    stats = {"events_imported": 0, "objects_imported": 0, "conversations_imported": 0}
+    buf = io.BytesIO(bundle_bytes)
+    with zipfile.ZipFile(buf, "r") as zf:
+        manifest = json.loads(zf.read("manifest.json"))
+        for name in zf.namelist():
+            try:
+                if name.startswith("sessions/") and name.endswith(".json"):
+                    sd = json.loads(zf.read(name))
+                    sid = sd["session_id"]
+                    rows = []
+                    for ev in sd.get("remote_events", []):
+                        rows.append({
+                            "user_id": user_id, "session_id": sid,
+                            "event_type": ev.get("event_type", "tool_use"),
+                            "tool_name": ev.get("tool_name"),
+                            "source_path": ev.get("source_path"),
+                            "source_type": ev.get("source_type", "file"),
+                            "ts": ev.get("ts"), "turn_idx": ev.get("turn_idx", 0),
+                        })
+                    if rows:
+                        client.table("ndp_events").insert(rows).execute()
+                        stats["events_imported"] += len(rows)
+                elif name.startswith("conversations/") and name.endswith(".txt"):
+                    sid = Path(name).stem
+                    content = zf.read(name).decode("utf-8", errors="replace")
+                    client.table("ndp_conversations").upsert({
+                        "user_id": user_id, "session_id": sid, "content": content,
+                        "platform": manifest.get("platform", "imported"),
+                        "started_at": manifest.get("started_at") or time.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    }).execute()
+                    stats["conversations_imported"] += 1
+                elif name.startswith("objects/") and name.endswith(".json"):
+                    obj = json.loads(zf.read(name))
+                    obj["user_id"] = user_id
+                    obj.pop("id", None)
+                    client.table("ndp_objects").upsert(obj).execute()
+                    stats["objects_imported"] += 1
+            except Exception:
+                continue
+    return {"manifest": manifest, "stats": stats}
+
+
+def _write_bundle_zip(out_path, manifest, session_id, local_events, sb_events, conv_content, objects):
+    """Write the zip to disk path. Shared by export_session."""
     with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("manifest.json", json.dumps(manifest, indent=2, default=str))
         zf.writestr(f"sessions/{session_id}.json", json.dumps({
@@ -144,8 +288,6 @@ def export_session(session_id: str, out_path: Path, include_content: bool = Fals
         for obj in objects:
             obj_id = obj.get("id", _short_hash(obj.get("source_path", str(time.time()))))
             zf.writestr(f"objects/{obj_id}.json", json.dumps(obj, indent=2, default=str))
-
-    return manifest
 
 
 def import_bundle(bundle_path: Path) -> dict:
