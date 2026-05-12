@@ -31,9 +31,22 @@ def _init_config() -> dict:
         "supabase_url": SUPABASE_URL,
         "supabase_key": "",
         "user_id": str(uuid.uuid4()),
+        # Privacy: default OFF. NDPA stores file paths + behavioral signal only.
+        # Set to true to upload file CONTENT (e.g. for hot-tier context staging).
+        # File contents only stored when this is explicitly enabled.
+        "upload_file_contents": False,
     }
     _write(cfg)
     return cfg
+
+
+def get_setting(key: str, default=None):
+    """Read a single setting from config. Used for feature flags."""
+    try:
+        cfg = load_config()
+        return cfg.get(key, default)
+    except Exception:
+        return default
 
 
 def save_key(key: str):

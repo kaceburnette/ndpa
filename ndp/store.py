@@ -42,26 +42,43 @@ def _async(fn, *args):
     return t
 
 
+def _obj_to_row(obj: NDPObject, user_id: str) -> dict:
+    return {
+        "id": obj.id,
+        "user_id": user_id,
+        "source_type": obj.source_type,
+        "source_path": obj.source_path,
+        "tier": obj.tier,
+        "freshness": obj.freshness,
+        "token_estimate": obj.token_estimate,
+        "prior_usefulness": obj.prior_usefulness,
+        "summary": obj.summary,
+        "tags": obj.tags,
+        "relationships": obj.relationships,
+        "access_history": obj.access_history,
+    }
+
+
 class NDPStore:
     def upsert(self, obj: NDPObject):
-        """Async write — never blocks the hook."""
+        """Async write — never blocks the hook. Prefer upsert_many for batches."""
         def _write():
             try:
                 client, user_id = _client()
-                client.table("ndp_objects").upsert({
-                    "id": obj.id,
-                    "user_id": user_id,
-                    "source_type": obj.source_type,
-                    "source_path": obj.source_path,
-                    "tier": obj.tier,
-                    "freshness": obj.freshness,
-                    "token_estimate": obj.token_estimate,
-                    "prior_usefulness": obj.prior_usefulness,
-                    "summary": obj.summary,
-                    "tags": obj.tags,
-                    "relationships": obj.relationships,
-                    "access_history": obj.access_history,
-                }).execute()
+                client.table("ndp_objects").upsert(_obj_to_row(obj, user_id)).execute()
+            except Exception:
+                pass
+        _async(_write)
+
+    def upsert_many(self, objs: list):
+        """Single batched upsert in a background thread. Use this from hot paths."""
+        if not objs:
+            return
+        def _write():
+            try:
+                client, user_id = _client()
+                rows = [_obj_to_row(o, user_id) for o in objs]
+                client.table("ndp_objects").upsert(rows).execute()
             except Exception:
                 pass
         _async(_write)

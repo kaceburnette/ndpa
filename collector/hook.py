@@ -113,26 +113,15 @@ def _sync_conversation(session_id: str, cwd: str, ts: float):
 
 # ── Ingestion API write (dogfood: same path as every other platform) ─────────
 
-def _supabase_write(session_id: str, ts: float, tool_name: str,
-                    paths: list, cwd: str, is_prompt: bool, turn_idx: int,
-                    prompt_text: str = ""):
-    """Post events through the public Ingestion API. Same path SDKs use."""
+def fire_supabase(session_id: str, ts: float, tool_name: str,
+                  paths: list, cwd: str, is_prompt: bool, turn_idx: int,
+                  prompt_text: str = ""):
+    """
+    Enqueue event for background flush. Returns in <5ms.
+    Background daemon (ndp.queue._flusher_main) handles the network I/O.
+    """
     try:
-        from ndp.config import load_config, is_configured
-        if not is_configured():
-            return
-        cfg = load_config()
-        api_key = cfg.get("api_key")
-        if not api_key:
-            return
-
-        sdk_path = Path(__file__).parent.parent / "sdk" / "python"
-        if str(sdk_path) not in sys.path:
-            sys.path.insert(0, str(sdk_path))
-        from ndpa import Client
-
-        client = Client(api_key=api_key, platform="claude_code", async_send=False, timeout=3.0)
-
+        from ndp.queue import enqueue
         events = []
         if is_prompt and prompt_text:
             events.append({"role": "user", "content": prompt_text, "ts": ts})
@@ -144,32 +133,61 @@ def _supabase_write(session_id: str, ts: float, tool_name: str,
                     "source_path": p,
                     "ts": ts,
                 })
-
         if events:
-            client.log_events(session_id, events)
+            enqueue(session_id, events, platform="claude_code")
     except Exception:
         pass
 
 
-def fire_supabase(session_id: str, ts: float, tool_name: str,
-                  paths: list, cwd: str, is_prompt: bool, turn_idx: int,
-                  prompt_text: str = ""):
-    """Call synchronously — threading causes urllib teardown races on sys.exit."""
-    _supabase_write(session_id, ts, tool_name, paths, cwd, is_prompt, turn_idx, prompt_text)
-
-
 # ── Kernel scoring + context staging ─────────────────────────────────────────
+
+_KNOWN_CACHE_FILE = NDP_DIR / "known_cache.json"
+_KNOWN_CACHE_TTL_S = 60  # cache known-objects between hook invocations
+
+
+def _load_known_cached() -> dict:
+    """Cache get_all() across hook invocations so we don't hit Supabase every tool use."""
+    try:
+        if _KNOWN_CACHE_FILE.exists():
+            data = json.loads(_KNOWN_CACHE_FILE.read_text())
+            if time.time() - data.get("ts", 0) < _KNOWN_CACHE_TTL_S:
+                from ndp.schema import NDPObject
+                return {
+                    p: NDPObject(**{k: v for k, v in obj.items() if k != "content"})
+                    for p, obj in data.get("objects", {}).items()
+                }
+    except Exception:
+        pass
+    return {}
+
+
+def _save_known_cache(known: dict):
+    try:
+        NDP_DIR.mkdir(parents=True, exist_ok=True)
+        serialized = {}
+        for path, obj in known.items():
+            d = obj.__dict__.copy() if hasattr(obj, "__dict__") else {}
+            d.pop("content", None)  # never cache content locally either
+            serialized[path] = d
+        _KNOWN_CACHE_FILE.write_text(json.dumps({"ts": time.time(), "objects": serialized}, default=str))
+    except Exception:
+        pass
+
 
 def score_and_stage(session_id: str):
     from ndp.store import NDPStore
     from ndp.schema import NDPObject
+    from ndp.config import get_setting
     from kernel.predictor import HeuristicPredictor
 
     store = NDPStore()
     state = load_state(session_id)
 
-    # One network round-trip to get everything we know about this user
-    known = store.get_all()  # {path: NDPObject}
+    # Cache known objects between invocations (60s TTL) — saves a network round-trip per tool use
+    known = _load_known_cached()
+    if not known:
+        known = store.get_all()
+        _save_known_cache(known)
 
     seen = {a["path"] for a in state["accesses"]}
     extended_accesses = list(state["accesses"]) + [
@@ -184,6 +202,13 @@ def score_and_stage(session_id: str):
     hot_set = {p for p, _ in predictions[:HOT_K]}
     warm_set = {p for p, _ in predictions[HOT_K:HOT_K + WARM_K]}
 
+    # Privacy flag: file content stays local unless user opts in
+    upload_contents = bool(get_setting("upload_file_contents", False))
+
+    # Collect updates and write in one batch
+    to_upsert = []
+    hot_objs = []  # for local context staging (always uses local file read)
+
     for path, score in predictions:
         p = Path(path)
         obj = known.get(path)
@@ -192,12 +217,12 @@ def score_and_stage(session_id: str):
             if not p.exists():
                 continue
             try:
-                content = p.read_text(errors="replace")
+                size = p.stat().st_size
             except Exception:
                 continue
             obj = NDPObject(
                 source_path=path,
-                token_estimate=max(1, len(content) // 4),
+                token_estimate=max(1, size // 4),
                 tier="cold",
             )
 
@@ -206,30 +231,44 @@ def score_and_stage(session_id: str):
 
         if obj.tier == "hot" and Path(path).name in EXCLUDE_FROM_HOT:
             obj.tier = "warm"
-            obj.content = None
 
+        # Read local file content for context staging — never leaves the local disk
+        # unless upload_file_contents=True
         if obj.tier == "hot" and p.exists():
             try:
                 obj.content = p.read_text(errors="replace")
+                hot_objs.append(obj)
             except Exception:
                 obj.content = None
         else:
             obj.content = None
 
-        store.upsert(obj)
+        # Strip content from the upload payload unless explicitly opted in
+        if not upload_contents:
+            obj.content = None
 
-    _write_context(store)
+        to_upsert.append(obj)
+
+    # ONE batched upsert instead of N per-object writes
+    if to_upsert:
+        store.upsert_many(to_upsert)
+
+    _write_local_context(hot_objs)
 
 
-def _write_context(store):
-    hot = store.get_by_tier("hot")
-    if not hot:
+def _write_local_context(hot_objs: list):
+    """
+    Write hot-tier file content to ~/.ndp/context.md from LOCAL objects.
+    No Supabase round-trip. File contents read from disk above; never sent
+    over the network unless upload_file_contents=True in config.
+    """
+    if not hot_objs:
         CONTEXT_FILE.unlink(missing_ok=True)
         return
 
     parts = [f"<!-- NDP staged context {time.strftime('%H:%M:%S')} -->"]
     used = 0
-    for obj in hot:
+    for obj in sorted(hot_objs, key=lambda o: o.prior_usefulness, reverse=True):
         if obj.content is None:
             continue
         if used + obj.token_estimate > TOKEN_BUDGET:

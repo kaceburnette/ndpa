@@ -1,182 +1,190 @@
 # NDPA — Neural Data Prefetch Architecture
 
-**A predictive memory layer for AI. Stop retrieving. Start predicting.**
+**Token prediction for the data layer.**
 
-> Every memory system today is reactive. You ask, it fetches.
-> NDPA learns what you'll need next — and stages it before you ask.
+Transformers predict the next token. NDPA predicts the next *data* — the
+files, conversations, and context an AI assistant will need on its next
+turn — and stages it before the user asks.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/badge/pip-ndpa-blue.svg)](sdk/python)
+[![npm](https://img.shields.io/badge/npm-ndpa-blue.svg)](sdk/typescript)
 
 ---
 
-## The problem
+## What it does
 
-Every AI memory system on the market (Mem0, Zep, LangMem, MemGPT) does the same thing: store facts, retrieve by vector similarity when queried. It's RAG dressed up as memory. **Reactive.** Expensive. Wasteful — most retrieved context is irrelevant.
+Every AI memory tool today is reactive: you ask, it searches, it returns
+(Mem0, Zep, MemGPT, LangMem, OpenAI Memory, Claude Memory). That's RAG with a
+nicer name.
 
-Context windows keep growing because we're stuffing them with everything that *might* be relevant. The model burns compute on noise.
+NDPA is **predictive**: it watches behavioral signal — which files you
+touched, what topics you've been discussing, what past sessions are about to
+become relevant — and pre-stages the right context before you ask.
 
-## The idea
+| Reactive retrieval (everything else) | Predictive staging (NDPA) |
+|--------------------------------------|---------------------------|
+| You ask → it searches → returns      | Behavioral signal → context staged |
+| Big context, hope something fits     | Small targeted context    |
+| Embeddings + vector DB + GPU         | BoW cosine, single Postgres query |
+| Bound to one AI platform             | Cross-platform (ChatGPT → Claude, etc.) |
 
-What if memory worked like a CPU cache instead of a search engine?
+---
 
-NDPA watches behavioral signal — which conversations you return to, what files follow what, what topics cluster, when sessions branch — and **predicts the data you'll need before you ask for it**. By the time the AI starts generating, the right context is already staged.
+## Eval numbers
 
-Not vector similarity. Not keyword search. **Behavioral prediction on a conversation graph.**
+Real data, reproducible (`python3 -m eval.conversation_eval`, `python3 -m eval.novel_topic_eval`):
 
-| Reactive retrieval (today) | Predictive prefetch (NDPA) |
-| --- | --- |
-| You ask → it searches → returns | It learns your patterns → stages context |
-| Big context, hope something's relevant | Small context, mostly relevant |
-| Pay tokens × params per call | Pay near-zero CPU per prediction |
-| Bigger model = more context = more $ | Smaller targeted context = less $ |
+| Eval                                            | Baseline | NDPA   | Lift  |
+|-------------------------------------------------|----------|--------|-------|
+| File prediction hit@5 (122 samples)             | 31.1%    | 47.5%  | +16.4 |
+| Conversation continuity hit@5 (494 samples)     | 31.6%    | 85.2%  | +53.6 |
+| **Novel topic prediction hit@5 (480 samples)**  | **17.9%** | **35.4%** | **+17.5** |
 
-## Status
+The **novel topic** number is the honest one — predicting topics introduced
+later in a conversation that don't appear in its history. This is closest
+to "predict context the user is about to need but hasn't asked for yet."
 
-**Early. Working. Open.**
+---
 
-- Cloud schema live (Supabase Postgres + RLS)
-- Ingestion API live (Supabase Edge Function)
-- Python + TypeScript SDKs published
-- Prediction kernel running, evaluable
-- File-prediction eval: **+8.3 pts hit@5 over the recency baseline** on real Claude Code sessions
-- Conversation-level eval scaffolded, awaiting more data
-- Conversations cross-platform via SDK (any AI loop can plug in)
-
-This is signal, not proof. The architecture is unoccupied territory and the early numbers point the right way.
-
-## Architecture
-
-```
-   ┌──────────────────────────────────────────────────────────────┐
-   │  Any AI platform (Claude / OpenAI / Gemini / local / yours)   │
-   │                                                                │
-   │     conversation loop ──► ndpa SDK ─► POST /v1/events          │
-   │                                          │                     │
-   └──────────────────────────────────────────┼─────────────────────┘
-                                              ▼
-                              ┌───────────────────────────────┐
-                              │  NDPA Ingestion API           │
-                              │  (Supabase Edge Function)     │
-                              └───────────────┬───────────────┘
-                                              ▼
-                              ┌───────────────────────────────┐
-                              │  ndp_events / ndp_conversations│
-                              │  ndp_sessions / ndp_objects    │
-                              │  (Postgres, RLS per user)      │
-                              └───────────────┬───────────────┘
-                                              ▼
-                              ┌───────────────────────────────┐
-                              │  Prediction kernel             │
-                              │  (recency, frequency, affinity,│
-                              │   import / topic proximity)    │
-                              └───────────────┬───────────────┘
-                                              ▼
-                              ┌───────────────────────────────┐
-                              │  Staged context returned to    │
-                              │  the calling AI before query   │
-                              └───────────────────────────────┘
-```
-
-## Quickstart
-
-### Python
+## 60-second quickstart
 
 ```bash
+git clone https://github.com/kaceburnette/ndpa
+cd ndpa
+python3 demo/demo.py
+```
+
+That's it. Runs locally, no network needed, shows real prediction numbers
+on synthetic data.
+
+To use it in your AI app:
+
+```python
 pip install ndpa
 ```
 
 ```python
 from ndpa import Client
+c = Client(api_key="ndpa_...", platform="myapp")
 
-client = Client(api_key="ndpa_...", platform="my_app")
+# Log every turn
+c.log_turn(session_id, "user", user_msg)
+c.log_turn(session_id, "assistant", reply)
 
-client.log_exchange(
-    session_id="chat_42",
-    user_message="What's the migration status?",
-    assistant_message="80% done, blocking on schema review.",
-)
+# Before generating the next response, get predicted context
+result = c.get_predictions(session_id, k=3)
+context = "\n".join(p["content"][:500] for p in result["predictions"])
+# Pass `context` as system prompt to your LLM
 ```
 
-### TypeScript / JavaScript
+5 lines. Zero embeddings. Sub-2-second predictions over 600+ conversations.
+
+---
+
+## How it works
+
+```
+User message → Hook captures event in <50ms
+            → Background queue posts to Ingestion API
+            → Behavioral kernel scores past conversations
+              + files by recency, frequency, topic overlap
+            → Predictions API returns top-K context
+            → Stage in system prompt BEFORE generation
+```
+
+The kernel:
+- **Recency** (0.35) — how recently accessed
+- **Frequency** (0.25) — how often in this session
+- **Extension affinity** (0.20) — test/spec/type pairings
+- **Import proximity** (0.20) — files imported by currently-hot files
+
+Plus BoW cosine topic match for conversation prediction. No GPU. No LLM in
+the hot path. Runs in <2s on 600+ conversations.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full system diagram.
+
+---
+
+## What's in the box
+
+- **Collector** (`collector/hook.py`) — Claude Code reference integration
+- **Kernel** (`kernel/predictor.py`) — heuristic prediction engine
+- **Queue** (`ndp/queue.py`) — local JSONL queue + background flusher
+- **Bundle** (`ndp/bundle.py`) — `.ndp` portable format (export/import)
+- **APIs** — `events`, `predictions`, `health` (Supabase Edge Functions)
+- **Python SDK** (`sdk/python/`) — zero dependencies
+- **TypeScript SDK** (`sdk/typescript/`) — zero dependencies
+- **Eval harness** (`eval/`) — file + conversation + novel-topic benchmarks
+- **ChatGPT importer** (`eval/chatgpt_import.py`) — bulk import history
+- **Demo** (`demo/demo.py`) — one-command reproducible demo
+
+---
+
+## The `.ndp` format
+
+Portable session bundles. Move your behavioral memory between platforms.
 
 ```bash
-npm install ndpa
+python3 -m ndp.bundle export <session_id>           # → session.ndp
+python3 -m ndp.bundle info session.ndp              # show manifest
+python3 -m ndp.bundle import session.ndp            # restore
 ```
 
-```typescript
-import { Client } from "ndpa";
+A `.ndp` file is a zip with `manifest.json`, `sessions/`, `conversations/`,
+`objects/`. No vendor lock-in. Standard you can hand off, archive, or share.
 
-const client = new Client({ apiKey: process.env.NDPA_API_KEY!, platform: "my_app" });
+---
 
-await client.logExchange(
-  "chat_42",
-  "What's the migration status?",
-  "80% done, blocking on schema review.",
-);
-```
+## Privacy
 
-Both SDKs send asynchronously by default — your AI loop never waits on the network.
+| Data                       | Stored locally | Uploaded by default |
+|----------------------------|----------------|---------------------|
+| File paths                 | yes            | yes                 |
+| Tool names, timestamps     | yes            | yes                 |
+| Conversation text          | yes            | yes                 |
+| **File contents**          | yes            | **NO** (opt-in)     |
 
-## How it works under the hood
+Set `upload_file_contents: true` in `~/.ndp/config.json` to opt in.
 
-Three things working together:
+Full details: [docs/SECURITY.md](docs/SECURITY.md).
 
-1. **Collector** — captures conversation turns + tool uses via the SDK (or a Claude Code hook reference integration in this repo).
-2. **Storage** — every event lands in Postgres, scoped by user with RLS. Conversations stored verbatim, not chunked.
-3. **Prediction kernel** — scores candidates on behavioral features. No LLM calls in the hot path, target <100ms per prediction.
+---
 
-## Repo layout
+## Production characteristics
 
-```
-ndp/              core schema, store, compiler
-kernel/           prediction engine
-collector/        Claude Code reference hook
-eval/             eval harness + baselines + synthetic generator
-sdk/python/       ndpa Python SDK
-sdk/typescript/   ndpa TS/JS SDK
-spec/             schema, format, eval protocol
-```
+- **Hook latency**: 44ms (queue write, never blocks)
+- **API rate limit**: 600 req/min/key
+- **Body limit**: 2MB, 1000 events/call
+- **Predictions**: 1.2s for 600 conversations
+- **Health endpoint**: `GET /v1/health`
+- **Self-hostable**: any Postgres + edge function runtime
 
-## Eval
+---
 
-```bash
-python3 -m eval.harness            # file-level eval
-python3 -m eval.conversation_eval  # conversation-level eval
-```
+## For platform engineers
 
-Current numbers:
+Wiring NDPA into your AI product:
 
-```
-File-level (84 samples, 6 sessions):
-              hit@1   hit@3   hit@5
-baseline      0.250   0.393   0.441
-heuristic     0.143   0.381   0.524
-lift@5: +8.3 pts
-```
+- [docs/INTEGRATION.md](docs/INTEGRATION.md) — 30s integration, patterns, API contracts
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system diagram, scaling, latency
+- [docs/SECURITY.md](docs/SECURITY.md) — threat model, GDPR, self-host
+- [docs/COMPARISON.md](docs/COMPARISON.md) — vs Mem0, Zep, MemGPT, OpenAI Memory
 
-The kernel beats baseline at staging (hit@5) and loses at single-prediction (hit@1) — which is fine: NDPA's job is to stage a candidate set, not to pick the one perfect file. Numbers tighten as session count grows. Conversation eval is data-starved until more sessions accumulate.
-
-## Roadmap
-
-- [x] Cloud storage with RLS
-- [x] Ingestion API (platform-agnostic)
-- [x] Python + TypeScript SDKs
-- [x] File-prediction eval beats baseline
-- [ ] Conversation-prediction eval beats baseline (data-starved)
-- [ ] Learned weights (gradient-boosted model on top of heuristic)
-- [ ] Warm migration (ingest existing AI history on signup)
-- [ ] Redis hot-tier cache for serving predictions
-- [ ] Real-time prediction API (`GET /v1/predictions`)
-- [ ] Multimodal objects (image, audio, video chunks)
+---
 
 ## License
 
-MIT.
+MIT. Use it, fork it, sell it. Just don't claim you invented it.
 
-## Citation
+## Why
 
-If you use NDPA in research or product, cite as:
+I built this in a week because nobody else had. The big labs are circling the
+idea in 2026 workshop papers. Mem0/Zep/Letta are all reactive. Nothing in
+production does behavioral prediction across sessions for AI context.
 
-```
-Burnette, K. (2026). NDPA: Neural Data Prefetch Architecture —
-a predictive memory layer for AI conversations.
-https://github.com/kaceburnette/ndp
-```
+Open sourced before any of them shipped it.
+
+If you're at an AI company and this would save your users time and your
+inference $: integrate it. The SDK is 5 lines. If you want to ship this
+faster than your competitors, fork the repo or talk to me.
