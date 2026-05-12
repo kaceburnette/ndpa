@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import time
 import urllib.request
 from collections import defaultdict
@@ -68,12 +69,19 @@ class RateLimiter:
     def __init__(self, requests_per_minute: int):
         self.delay = 60.0 / max(1, requests_per_minute)
         self._next_at = 0.0
+        self._lock = threading.Lock()
 
     def wait(self) -> None:
-        now = time.time()
-        if now < self._next_at:
-            time.sleep(self._next_at - now)
-        self._next_at = time.time() + self.delay
+        with self._lock:
+            now = time.time()
+            if now < self._next_at:
+                sleep_for = self._next_at - now
+                self._next_at += self.delay
+            else:
+                sleep_for = 0.0
+                self._next_at = now + self.delay
+        if sleep_for:
+            time.sleep(sleep_for)
 
 
 def session_to_events(session: Iterable[dict], *, fallback_ts: float) -> list[dict]:
@@ -128,4 +136,3 @@ def aggregate_hits(rows: list[dict], *, category_field: str = "category") -> dic
                 )
         out[category] = {"n": n, **metrics}
     return out
-

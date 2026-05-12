@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from eval.external_benchmark_utils import (
@@ -79,18 +80,25 @@ def run(args: argparse.Namespace) -> dict:
         haystack_dates = item.get("haystack_dates") or []
         haystack_sessions = item.get("haystack_sessions") or []
 
-        for session_index, session in enumerate(haystack_sessions):
+        def ingest_session(session_index: int, session: list[dict]) -> None:
             session_id = haystack_ids[session_index] if session_index < len(haystack_ids) else f"{question_id}_{session_index}"
             fallback_ts = 1_700_000_000.0 + session_index
             events = session_to_events(session, fallback_ts=fallback_ts)
             if not events:
-                continue
+                return
             if session_index < len(haystack_dates):
                 events[0]["source_path"] = f"longmemeval:{haystack_dates[session_index]}"
             limiter.wait()
             client.log_events(session_id, events, end_user_id=end_user_id)
 
-        limiter.wait()
+        with ThreadPoolExecutor(max_workers=args.ingest_workers) as pool:
+            futures = [
+                pool.submit(ingest_session, session_index, session)
+                for session_index, session in enumerate(haystack_sessions)
+            ]
+            for future in as_completed(futures):
+                future.result()
+
         result = client.get_predictions(
             session_id=f"longmemeval_query_{question_id}",
             query=str(item.get("question") or ""),
@@ -135,6 +143,7 @@ def main() -> None:
     parser.add_argument("--max-items", type=int, default=0, help="Optional smoke-test limit")
     parser.add_argument("--force-download", action="store_true")
     parser.add_argument("--requests-per-minute", type=int, default=540, help="Stay below the 600 req/min API limit")
+    parser.add_argument("--ingest-workers", type=int, default=8, help="Concurrent ingestion workers")
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument("--progress-every", type=int, default=25)
     args = parser.parse_args()
@@ -146,4 +155,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
