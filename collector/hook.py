@@ -241,15 +241,49 @@ def _write_context(store):
     CONTEXT_FILE.write_text("\n".join(parts))
 
 
-def _inject_conversation_predictions(session_id: str, prompt_text: str):
-    """Fetch top-3 relevant past conversations and append compact summaries to context.md."""
+def _build_trajectory_query(session_id: str) -> str:
+    """
+    Build a conversation prediction query from recent user prompts only.
+    File paths drive the file-level kernel. Prompts drive conversation prediction.
+    This is what makes it predictive: the trajectory of what you've been ASKING
+    determines what past conversations surface before you type the next question.
+    """
+    log = SESSION_DIR / f"{session_id}.jsonl"
+    if not log.exists():
+        return ""
+
+    prompts = []
+    for line in log.read_text(errors="replace").splitlines():
+        try:
+            ev = json.loads(line)
+            if ev.get("event") == "turn_start":
+                p = (ev.get("prompt") or "").strip()
+                if p:
+                    prompts.append(p[:200])
+        except Exception:
+            continue
+
+    # Use last 5 prompts — enough context for trajectory, not so much it's noisy
+    return " ".join(prompts[-5:])
+
+
+def _inject_conversation_predictions(session_id: str):
+    """
+    Predictive: runs AFTER tool use, uses session trajectory to pre-stage
+    relevant past conversations BEFORE the next prompt arrives.
+    Not reactive search — prediction from behavioral signal.
+    """
     try:
         from ndp.config import load_config, is_configured
         if not is_configured():
             return
         cfg = load_config()
         api_key = cfg.get("api_key")
-        if not api_key or not prompt_text.strip():
+        if not api_key:
+            return
+
+        query = _build_trajectory_query(session_id)
+        if not query.strip():
             return
 
         sdk_path = Path(__file__).parent.parent / "sdk" / "python"
@@ -258,36 +292,42 @@ def _inject_conversation_predictions(session_id: str, prompt_text: str):
         from ndpa import Client
 
         client = Client(api_key=api_key, async_send=False, timeout=4.0)
-        result = client.get_predictions(session_id, query=prompt_text[:300], k=3)
-        preds = result.get("predictions", [])
-
-        # Only include results with meaningful topic signal
-        preds = [p for p in preds if p.get("topic_score", 0) > 0.05]
+        # Pass empty session_id: trajectory is already in query, no live-session recency bias needed
+        result = client.get_predictions("", query=query, k=10)
+        preds = [
+            p for p in result.get("predictions", [])
+            if p.get("topic_score", 0) > 0.05
+            and len(p.get("content", "")) > 500  # skip shallow/test sessions
+        ]
         if not preds:
             return
 
-        lines = ["\n<!-- NDPA: relevant past conversations -->"]
+        lines = ["\n<!-- NDPA: predicted context -->"]
         for p in preds:
             platform = p.get("platform") or "unknown"
             date = (p.get("started_at") or "")[:10]
             content = p.get("content", "")
-            # Find first non-trivial user message
             title = ""
             for chunk in content.split("[user]")[1:]:
                 candidate = chunk.strip().split("\n")[0][:120].strip()
-                # Skip pure tool-call lines
                 if candidate and not candidate.startswith("[tool]") and len(candidate) > 15:
                     title = candidate
                     break
+            if not title:
+                # Fallback: first non-empty, non-tool line anywhere in content
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("[tool]") and not line.startswith("[assistant]") and not line.startswith("[user]") and len(line) > 20:
+                        title = line[:120]
+                        break
             if title:
                 lines.append(f"[{date} | {platform}] {title}")
 
         if len(lines) > 1:
             NDP_DIR.mkdir(parents=True, exist_ok=True)
             existing = CONTEXT_FILE.read_text() if CONTEXT_FILE.exists() else ""
-            # Strip any prior prediction block before appending fresh one
-            if "<!-- NDPA: relevant past conversations -->" in existing:
-                existing = existing[:existing.index("<!-- NDPA: relevant past conversations -->")].rstrip()
+            if "<!-- NDPA: predicted context -->" in existing:
+                existing = existing[:existing.index("<!-- NDPA: predicted context -->")].rstrip()
             CONTEXT_FILE.write_text(existing + "\n" + "\n".join(lines))
     except Exception:
         pass
@@ -353,18 +393,15 @@ def main():
         except Exception:
             pass
 
-    # 3a. Kernel scoring + staging (file tool calls)
+    # 3. After every file tool use: score files + predict relevant past conversations.
+    #    Both run from session trajectory — staged BEFORE the next prompt arrives.
     if is_file_event:
         try:
             score_and_stage(session_id)
         except Exception:
             pass
-
-    # 3b. Conversation predictions injection (prompt events)
-    if is_prompt_event:
-        prompt_text = str(data.get("prompt", ""))
         try:
-            _inject_conversation_predictions(session_id, prompt_text)
+            _inject_conversation_predictions(session_id)
         except Exception:
             pass
 
