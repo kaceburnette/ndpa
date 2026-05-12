@@ -93,10 +93,12 @@ def load_conversations() -> List[Conversation]:
         pass
 
     convs: List[Conversation] = []
+    seen: set = set()
 
     # Pull turn lists from each JSONL — prompts are our turn proxy
     for jsonl in SESSION_DIR.glob("*.jsonl"):
         session_id = jsonl.stem
+        seen.add(session_id)
         prompts: List[str] = []
         first_ts = None
         for line in jsonl.read_text(errors="replace").splitlines():
@@ -119,6 +121,23 @@ def load_conversations() -> List[Conversation]:
             ts = first_ts or time.time()
             turns = prompts
 
+        if len(turns) < MIN_TURNS:
+            continue
+        convs.append(Conversation(
+            session_id=session_id,
+            content=content,
+            started_at=ts,
+            turns=turns,
+            bow=tokenize(content),
+        ))
+
+    # Add Supabase-only sessions (e.g. imported ChatGPT conversations)
+    for session_id, (content, ts) in sb_content.items():
+        if session_id in seen:
+            continue
+        turns = [t.strip() for t in re.split(r"\n\[(?:user|tool|assistant)\]\s*", content) if t.strip()]
+        if not turns:
+            turns = [s.strip() for s in content.split("\n\n") if s.strip()]
         if len(turns) < MIN_TURNS:
             continue
         convs.append(Conversation(

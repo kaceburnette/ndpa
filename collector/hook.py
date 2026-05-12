@@ -241,6 +241,58 @@ def _write_context(store):
     CONTEXT_FILE.write_text("\n".join(parts))
 
 
+def _inject_conversation_predictions(session_id: str, prompt_text: str):
+    """Fetch top-3 relevant past conversations and append compact summaries to context.md."""
+    try:
+        from ndp.config import load_config, is_configured
+        if not is_configured():
+            return
+        cfg = load_config()
+        api_key = cfg.get("api_key")
+        if not api_key or not prompt_text.strip():
+            return
+
+        sdk_path = Path(__file__).parent.parent / "sdk" / "python"
+        if str(sdk_path) not in sys.path:
+            sys.path.insert(0, str(sdk_path))
+        from ndpa import Client
+
+        client = Client(api_key=api_key, async_send=False, timeout=4.0)
+        result = client.get_predictions(session_id, query=prompt_text[:300], k=3)
+        preds = result.get("predictions", [])
+
+        # Only include results with meaningful topic signal
+        preds = [p for p in preds if p.get("topic_score", 0) > 0.05]
+        if not preds:
+            return
+
+        lines = ["\n<!-- NDPA: relevant past conversations -->"]
+        for p in preds:
+            platform = p.get("platform") or "unknown"
+            date = (p.get("started_at") or "")[:10]
+            content = p.get("content", "")
+            # Find first non-trivial user message
+            title = ""
+            for chunk in content.split("[user]")[1:]:
+                candidate = chunk.strip().split("\n")[0][:120].strip()
+                # Skip pure tool-call lines
+                if candidate and not candidate.startswith("[tool]") and len(candidate) > 15:
+                    title = candidate
+                    break
+            if title:
+                lines.append(f"[{date} | {platform}] {title}")
+
+        if len(lines) > 1:
+            NDP_DIR.mkdir(parents=True, exist_ok=True)
+            existing = CONTEXT_FILE.read_text() if CONTEXT_FILE.exists() else ""
+            # Strip any prior prediction block before appending fresh one
+            if "<!-- NDPA: relevant past conversations -->" in existing:
+                existing = existing[:existing.index("<!-- NDPA: relevant past conversations -->")].rstrip()
+            CONTEXT_FILE.write_text(existing + "\n" + "\n".join(lines))
+    except Exception:
+        pass
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -301,10 +353,18 @@ def main():
         except Exception:
             pass
 
-    # 3. Kernel scoring + staging (only on file tool calls)
+    # 3a. Kernel scoring + staging (file tool calls)
     if is_file_event:
         try:
             score_and_stage(session_id)
+        except Exception:
+            pass
+
+    # 3b. Conversation predictions injection (prompt events)
+    if is_prompt_event:
+        prompt_text = str(data.get("prompt", ""))
+        try:
+            _inject_conversation_predictions(session_id, prompt_text)
         except Exception:
             pass
 
