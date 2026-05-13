@@ -77,18 +77,20 @@ def load_conversations() -> List[Conversation]:
     client = create_client(cfg["supabase_url"], cfg["supabase_key"])
 
     sb_content: Dict[str, Tuple[str, float]] = {}
+    # By default, load ONLY conversations without end_user_id (real user data,
+    # not benchmark haystacks). Benchmark data lives under end_user_id values.
+    import os
+    include_benchmark = os.environ.get("NDPA_INCLUDE_BENCHMARK") == "1"
     try:
-        # Paginate — Supabase default page size is 1000
         offset = 0
         page_size = 1000
         while True:
-            result = (
-                client.table("ndp_conversations")
-                .select("session_id, content, started_at")
-                .eq("user_id", cfg["user_id"])
-                .range(offset, offset + page_size - 1)
-                .execute()
-            )
+            q = (client.table("ndp_conversations")
+                 .select("session_id, content, started_at")
+                 .eq("user_id", cfg["user_id"]))
+            if not include_benchmark:
+                q = q.is_("end_user_id", "null")
+            result = q.range(offset, offset + page_size - 1).execute()
             if not result.data:
                 break
             for row in result.data:

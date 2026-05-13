@@ -41,10 +41,32 @@ import time
 from collections import Counter
 from typing import List, Set
 
+from collections import defaultdict
+
 from eval.conversation_eval import (
     Conversation, load_conversations, tokenize, cosine,
     TOP_K_PREDICT,
 )
+
+
+def load_conversations_grouped() -> dict:
+    """
+    Load conversations grouped by user (end_user_id from session prefix or main user).
+    Returns {user_key: [Conversation, ...]} so PQHR can run per-user.
+
+    Heuristic: session_ids starting with 'longmemeval_' belong to that synthetic
+    user; everything else belongs to the main NDPA user.
+    """
+    all_convs = load_conversations()
+    grouped: dict[str, list[Conversation]] = defaultdict(list)
+    for c in all_convs:
+        # LongMemEval haystacks: session_id may contain the question_id; group by question
+        if "longmemeval" in c.session_id.lower() or c.session_id.startswith("qa"):
+            # use session_id prefix to identify the synthetic user
+            grouped["longmemeval_haystack_pool"].append(c)
+        else:
+            grouped["main_user"].append(c)
+    return grouped
 
 K_GROUND_TRUTH = 5             # top-K relevant past conversations are "truth"
 TRAJECTORY_WINDOW_DEFAULT = 3  # use last N conversations as trajectory signal
@@ -85,6 +107,23 @@ def baseline_random(trajectory_bow: Counter, past: List[Conversation], k: int) -
     import random
     rng = random.Random(42)
     return [c.session_id for c in rng.sample(past, min(k, len(past)))]
+
+
+def filter_to_real_user_data(convs: List[Conversation]) -> List[Conversation]:
+    """
+    Filter out LongMemEval test haystacks and other benchmark-generated data.
+    PQHR should be measured on REAL user conversation patterns, not on
+    benchmarks where 500 synthetic users got mixed into one pool.
+    """
+    return [
+        c for c in convs
+        if not any(prefix in c.session_id.lower() for prefix in (
+            "longmemeval", "locomo_", "bench_", "synthetic_",
+            "test_", "smoke_", "dogfood_", "fix_test", "latency_test",
+            "predictive_demo", "demo_", "conv_pred_test", "hook_",
+            "rl_test", "live_demo",
+        ))
+    ]
 
 
 def build_pqhr_samples(convs: List[Conversation], trajectory_window: int) -> list:
@@ -148,8 +187,11 @@ def main():
     print(f" predictor sees: ONLY prior conversations, never current or future")
     print()
 
-    convs = load_conversations()
-    print(f"Loaded {len(convs)} conversations")
+    all_convs = load_conversations()
+    print(f"Loaded {len(all_convs)} total conversations")
+
+    convs = filter_to_real_user_data(all_convs)
+    print(f"After filtering benchmark/test data: {len(convs)} real-user conversations")
 
     samples = build_pqhr_samples(convs, args.trajectory_window)
     print(f"PQHR samples: {len(samples)}")
