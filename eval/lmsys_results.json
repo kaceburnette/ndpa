@@ -1,8 +1,8 @@
 {
   "benchmark": "LMSYS-Chat-1M validation",
-  "elapsed_sec": 0.0,
+  "elapsed_sec": 1.28,
   "metrics": {},
-  "reason": "Python package `datasets` is not installed",
+  "reason": "Dataset 'lmsys/lmsys-chat-1m' is a gated dataset on the Hub. You must be authenticated to access it.",
   "rows": [],
   "status": "blocked"
 }

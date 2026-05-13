@@ -47,17 +47,49 @@ to "predict context the user is about to need but hasn't asked for yet."
 
 ## External Benchmarks
 
-Runners are in place, but full external numbers are not published yet:
+Full retrieval runs against external memory benchmarks:
 
-| Benchmark | Runner | Status |
-|-----------|--------|--------|
-| LongMemEval | `python3 -m eval.longmemeval_runner` | Ready; writes `eval/longmemeval_results.json` with hit@1/3/5 by category |
-| LoCoMo | `python3 -m eval.locomo_runner` | Ready against public `locomo10.json`; writes `eval/locomo_results.json` |
-| LMSYS-Chat-1M | `python3 -m eval.lmsys_validation --input sample.jsonl` | Blocked on this machine: gated parquet dataset needs an accepted local sample or optional `datasets` install |
+### LongMemEval
 
-No Mem0/Zep/MemGPT comparison claim is made here until a full run produces
-durable results. The internal held-out future result remains **71.8% hit@5**
-on 156 samples.
+`python3 -m eval.longmemeval_runner` on `xiaowu0162/longmemeval-cleaned`
+(`longmemeval_s_cleaned.json`), scored as evidence-session recall:
+
+| Category | n | hit@1 | hit@3 | hit@5 |
+|----------|---:|------:|------:|------:|
+| Overall | 500 | 56.8% | 75.8% | 80.4% |
+| Single-session assistant | 56 | 87.5% | 92.9% | 94.6% |
+| Knowledge update | 72 | 70.8% | 93.1% | 95.8% |
+| Temporal reasoning | 127 | 58.3% | 77.2% | 81.9% |
+| Multi-session | 121 | 55.4% | 80.2% | 84.3% |
+| Single-session user | 64 | 46.9% | 68.8% | 76.6% |
+| Abstention | 30 | 26.7% | 40.0% | 53.3% |
+| Single-session preference | 30 | 16.7% | 30.0% | 30.0% |
+
+The LongMemEval paper reports retrieval baselines such as BM25, Contriever,
+GTE, and Stella. It does not publish Mem0/Zep/MemGPT category numbers in the
+benchmark paper, so no head-to-head claim is made here.
+
+### LoCoMo
+
+`python3 -m eval.locomo_runner` on the maintained public
+`snap-research/locomo` `locomo10.json`, scored as evidence-session recall:
+
+| Category | n | hit@1 | hit@3 | hit@5 |
+|----------|---:|------:|------:|------:|
+| Overall | 1,982 | 35.2% | 58.6% | 68.2% |
+| Adversarial | 446 | 39.7% | 63.7% | 74.2% |
+| Open-domain | 841 | 39.1% | 62.8% | 71.0% |
+| Temporal | 321 | 29.0% | 50.5% | 59.8% |
+| Single-hop | 282 | 27.3% | 53.2% | 66.3% |
+| Multi-hop | 92 | 22.8% | 40.2% | 47.8% |
+
+### LMSYS-Chat-1M
+
+`python3 -m eval.lmsys_validation` is blocked without HuggingFace
+authentication: `lmsys/lmsys-chat-1m` is a gated dataset. The runner writes
+`eval/lmsys_results.json` with `status: "blocked"` instead of inventing a
+number. Run it with an authenticated HuggingFace session or pass a local
+JSON/JSONL sample via `--input`.
 
 ---
 
