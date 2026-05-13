@@ -95,13 +95,14 @@ def run(args: argparse.Namespace) -> dict:
                 attempts=args.retries,
             )
 
-        with ThreadPoolExecutor(max_workers=args.ingest_workers) as pool:
-            futures = [
-                pool.submit(ingest_session, session_index, session)
-                for session_index, session in enumerate(haystack_sessions)
-            ]
-            for future in as_completed(futures):
-                future.result()
+        if not args.skip_ingest:
+            with ThreadPoolExecutor(max_workers=args.ingest_workers) as pool:
+                futures = [
+                    pool.submit(ingest_session, session_index, session)
+                    for session_index, session in enumerate(haystack_sessions)
+                ]
+                for future in as_completed(futures):
+                    future.result()
 
         result = call_with_retries(
             lambda: client.get_predictions(
@@ -154,6 +155,8 @@ def main() -> None:
     parser.add_argument("--retries", type=int, default=3, help="Live API retry attempts")
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument("--progress-every", type=int, default=25)
+    parser.add_argument("--skip-ingest", action="store_true",
+                        help="Skip haystack ingestion (assumes data already in NDPA from a prior run)")
     args = parser.parse_args()
 
     results = run(args)
