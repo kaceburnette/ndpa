@@ -47,7 +47,40 @@ to "predict context the user is about to need but hasn't asked for yet."
 
 ## External Benchmarks
 
-Full retrieval runs against external memory benchmarks:
+Full retrieval runs against external memory benchmarks. **Headline: NDPA
+achieves 80.4% hit@5 on LongMemEval and 68.2% on LoCoMo using bag-of-words
+cosine + Postgres GIN index — no embeddings, no GPU, no LLM in the hot path.**
+
+### Honest comparison vs incumbents
+
+The published memory-system numbers below are **end-to-end QA accuracy**
+(retrieve → reason → answer correctly). Our numbers are **retrieval hit@k**
+(did the right past conversation surface in top K). These are not directly
+comparable — retrieval hit@k is typically higher than end-to-end accuracy.
+We have not yet run an end-to-end pipeline. See "What's next" below.
+
+| System            | LongMemEval | LoCoMo  | Method                          | Cost profile       |
+|-------------------|-------------|---------|---------------------------------|--------------------|
+| **NDPA (this)**   | **80.4%***  | **68.2%*** | BoW cosine + Postgres GIN     | ~$0.003/user/mo    |
+| Mem0              | ~85%        | 80–91%  | Vector store + graph + LLM       | ~$0.05/user/mo     |
+| Zep               | 71.2% / 58.4% disputed | 75.1% / 58.4% disputed | Temporal knowledge graph + embeddings | embedding + DB     |
+| TiMem             | 76.9%       | —       | Temporal hierarchical + LLM       | embedding + LLM    |
+| EverMemOS         | 83.0%       | —       | —                                | —                  |
+| MemPalace         | 96.6%       | —       | Local-only                       | —                  |
+| ByteRover 2.0     | —           | 92.2%   | —                                | —                  |
+| Vanilla full ctx  | 60.2%       | —       | Stuff everything in GPT-4o       | full-context $$$$  |
+
+`*` retrieval hit@5, not end-to-end QA. Apples-to-oranges asterisk applies.
+
+### What makes the comparison honest
+
+We're not claiming we beat Mem0. We're claiming **competitive retrieval
+quality at ~17× lower infrastructure cost** with a fundamentally simpler
+architecture (no embedding API calls, no vector DB hosting, no GPU). For
+high-volume platforms — chat apps, voice AI, code agents — the cost
+delta dominates. NDPA also does something none of the incumbents do:
+**predict and stage context before the user asks** (see hook + tiered
+storage docs).
 
 ### LongMemEval
 
@@ -90,6 +123,26 @@ authentication: `lmsys/lmsys-chat-1m` is a gated dataset. The runner writes
 `eval/lmsys_results.json` with `status: "blocked"` instead of inventing a
 number. Run it with an authenticated HuggingFace session or pass a local
 JSON/JSONL sample via `--input`.
+
+### What's next on benchmarks
+
+We're playing a different game than the published systems. The benchmarks
+measure reactive retrieval (question → fetch). NDPA's real purpose is
+predictive staging (signal → pre-stage before question arrives). Improvements
+in roadmap order:
+
+1. **End-to-end QA eval**: chain NDPA retrieval into GPT-4o, score final
+   answers. Makes comparison to Mem0/Zep/MemGPT genuinely apples-to-apples.
+2. **TF-IDF + bigrams + better stopwords**: low-risk retrieval quality
+   improvements expected to push hit@5 into the mid-to-high 80s on
+   LongMemEval. Single PR, ablatable.
+3. **Cross-encoder reranker**: top-50 BoW retrieval → top-5 reranked. Likely
+   closes the gap to embedding-based systems on end-to-end QA while keeping
+   the BoW retrieval path cheap.
+4. **Predictive Staging Accuracy (PSA) benchmark**: a new metric for what
+   NDPA actually does — measures whether the right past conversation is
+   staged in top-K BEFORE the user types their next query. This is the test
+   no incumbent can win on because none of them try.
 
 ---
 
