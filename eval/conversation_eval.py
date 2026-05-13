@@ -78,17 +78,27 @@ def load_conversations() -> List[Conversation]:
 
     sb_content: Dict[str, Tuple[str, float]] = {}
     try:
-        result = (
-            client.table("ndp_conversations")
-            .select("session_id, content, started_at")
-            .eq("user_id", cfg["user_id"])
-            .execute()
-        )
-        for row in result.data:
-            content = (row.get("content") or "").strip()
-            ts = time.mktime(time.strptime(row["started_at"][:19], "%Y-%m-%dT%H:%M:%S"))
-            if content:
-                sb_content[row["session_id"]] = (content, ts)
+        # Paginate — Supabase default page size is 1000
+        offset = 0
+        page_size = 1000
+        while True:
+            result = (
+                client.table("ndp_conversations")
+                .select("session_id, content, started_at")
+                .eq("user_id", cfg["user_id"])
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            if not result.data:
+                break
+            for row in result.data:
+                content = (row.get("content") or "").strip()
+                ts = time.mktime(time.strptime(row["started_at"][:19], "%Y-%m-%dT%H:%M:%S"))
+                if content:
+                    sb_content[row["session_id"]] = (content, ts)
+            if len(result.data) < page_size:
+                break
+            offset += page_size
     except Exception:
         pass
 

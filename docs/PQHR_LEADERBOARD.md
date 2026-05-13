@@ -11,10 +11,16 @@ Honest setup details required.
 
 | Rank | System | Version | pqhr@1 | pqhr@3 | pqhr@5 | Dataset | Notes |
 |-----:|--------|---------|-------:|-------:|-------:|---------|-------|
-| 1 | **NDPA (pure topic)** | v8 | 0.139 | 0.354 | **0.487** | reference corpus (973 samples) | BoW + TF-IDF + BM25, no embeddings |
-| 2 | NDPA (heuristic) | v8 | 0.145 | 0.262 | 0.416 | reference corpus (973 samples) | 0.4 recency + 0.6 topic |
-| 3 | Recency baseline | — | 0.133 | 0.220 | 0.302 | reference corpus (973 samples) | Most-recent-K-conversations |
-| — | Random baseline | — | 0.018 | 0.023 | 0.048 | reference corpus (973 samples) | Sanity check |
+| 1 | **NDPA (pure topic)** | v8 | 0.077 | 0.213 | **0.314** | reference corpus (1971 samples) | BoW + TF-IDF + BM25, no embeddings |
+| 2 | NDPA (heuristic) | v8 | 0.080 | 0.165 | 0.275 | reference corpus (1971 samples) | 0.4 recency + 0.6 topic |
+| 3 | Recency baseline | — | 0.073 | 0.124 | 0.171 | reference corpus (1971 samples) | Most-recent-K-conversations |
+| — | Random baseline | — | 0.008 | 0.010 | 0.023 | reference corpus (1971 samples) | Sanity check |
+
+**Lift over recency baseline @5: +14.3 percentage points.**
+
+Earlier smaller-sample run (n=973): NDPA pqhr@5 = 0.487. The larger-corpus
+number above is more representative — with more conversations to choose
+from, raw accuracy drops but the predictive lift remains.
 
 ## Submitted by other systems
 

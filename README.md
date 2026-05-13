@@ -61,12 +61,12 @@ predict-forward use case. Vector DBs and embedding-based memory systems
 
 | Predictor                | pqhr@1 | pqhr@3 | pqhr@5 |
 |--------------------------|--------|--------|--------|
-| Random (sanity check)    | 0.018  | 0.023  | 0.048  |
-| Recency-only baseline    | 0.133  | 0.220  | 0.302  |
-| NDPA heuristic           | 0.145  | 0.262  | 0.416  |
-| **NDPA pure topic**      | **0.139** | **0.354** | **0.487** |
+| Random (sanity check)    | 0.008  | 0.010  | 0.023  |
+| Recency-only baseline    | 0.073  | 0.124  | 0.171  |
+| NDPA heuristic           | 0.080  | 0.165  | 0.275  |
+| **NDPA pure topic**      | **0.077** | **0.213** | **0.314** |
 
-**+18.5 pts over recency baseline** on 973 samples. Spec: [docs/PQHR.md](docs/PQHR.md).
+**+14.3 pts over recency baseline** on 1,971 samples. Spec: [docs/PQHR.md](docs/PQHR.md).
 Leaderboard: [docs/PQHR_LEADERBOARD.md](docs/PQHR_LEADERBOARD.md).
 
 ---
