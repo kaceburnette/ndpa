@@ -40,3 +40,4 @@ build/
 # Env
 .env
 .env.local
+.vercel

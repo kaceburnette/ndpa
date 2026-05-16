@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MemFront — Predict-First Memory for Realtime AI</title>
+  <link rel="icon" type="image/png" href="assets/memfront-icon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 55%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .glow {
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.10);
+    }
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #21262d;
+    }
+    .bench-row:hover td { background: rgba(16, 185, 129, 0.05); }
+    .eyebrow {
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: #a1a1aa;
+    }
+  </style>
+</head>
+<body class="bg-[#050506] text-gray-100 antialiased">
+
+  <!-- Nav -->
+  <nav class="border-b border-white/5 px-6 py-4">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="assets/memfront-icon.png" alt="MemFront logo" class="h-7 w-7 rounded object-cover" />
+        <span class="font-semibold text-white tracking-tight">MemFront</span>
+        <span class="text-xs text-gray-500 mono border border-white/10 rounded px-1.5 py-0.5">v0</span>
+      </div>
+      <div class="flex items-center gap-6 text-sm text-gray-400">
+        <a href="#benchmarks" class="hover:text-white transition-colors">Benchmarks</a>
+        <a href="#pqhr" class="hover:text-white transition-colors">PQHR</a>
+        <a href="console.html" class="hover:text-white transition-colors">Console</a>
+        <a href="https://github.com/kaceburnette/ndpa" class="hover:text-white transition-colors">GitHub</a>
+        <a href="#get-access" class="bg-white hover:bg-zinc-200 text-zinc-950 rounded-md px-4 py-1.5 font-medium transition-colors">Join waitlist</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="max-w-6xl mx-auto px-6 pt-24 pb-20">
+    <div class="max-w-3xl">
+      <div class="inline-flex items-center gap-2 eyebrow rounded-full px-3 py-1 text-xs mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        Predict-first memory for realtime AI
+      </div>
+      <h1 class="text-5xl font-bold leading-tight mb-6">
+        Give your AI the right memory<br/>
+        <span class="gradient-text">before the user asks</span>
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed mb-8">
+        MemFront keeps the next likely context hot, so realtime agents do not wait on
+        memory search after the prompt arrives. Predict-first staging returns compact
+        `.ndp` handles in the fast path; full context and Reasoning are pulled only when needed.
+      </p>
+      <div class="flex flex-wrap items-center gap-4">
+        <a href="#get-access" class="bg-white hover:bg-zinc-200 text-zinc-950 font-semibold px-6 py-3 rounded-lg transition-colors">
+          Join the waitlist
+        </a>
+        <a href="https://github.com/kaceburnette/ndpa" class="border border-white/10 hover:border-white/25 text-gray-300 font-medium px-6 py-3 rounded-lg transition-colors flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.04.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- The big pitch -->
+  <section class="border-y border-white/5 bg-white/[0.02]">
+    <div class="max-w-6xl mx-auto px-6 py-16">
+      <div class="grid grid-cols-1 gap-px bg-white/5 rounded-xl overflow-hidden md:grid-cols-3">
+        <!-- Pitch 1 -->
+        <div class="bg-[#050506] p-8">
+          <div class="mono text-xs text-emerald-300 mb-3">01 / PREDICT</div>
+          <h3 class="font-semibold text-white text-lg mb-2">Keep the right memory hot</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Reactive retrieval waits for a query. Predict-first memory watches trajectory and stages the context most likely to matter next.
+          </p>
+          <div class="mt-4 mono text-xs text-emerald-300">0.85ms warm/staged P50 · 85.9% PQHR@5</div>
+        </div>
+        <!-- Pitch 2 -->
+        <div class="bg-[#050506] p-8 border-x border-white/5">
+          <div class="mono text-xs text-sky-300 mb-3">02 / .NDP FORMAT</div>
+          <h3 class="font-semibold text-white text-lg mb-2">Portable handles, cheap hydration</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            The `.ndp` format moves memory as handles, previews, terms, scores, and storage keys.
+            Full context is pulled only after the kernel selects it.
+          </p>
+          <div class="mt-4 mono text-xs text-sky-300">hot index · cold context · hydrate on demand</div>
+        </div>
+        <!-- Pitch 3 -->
+        <div class="bg-[#050506] p-8">
+          <div class="mono text-xs text-rose-300 mb-3">03 / REASONING</div>
+          <h3 class="font-semibold text-white text-lg mb-2">LLMs only on the premium path</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Predict, Memory, and Hydration stay cheap. Reasoning adds the LLM answer layer only when the customer needs final QA.
+          </p>
+          <div class="mt-4 mono text-xs text-rose-300">85.2% LongMemEval-S E2E judge</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What it is -->
+  <section class="max-w-6xl mx-auto px-6 py-20">
+    <div class="grid grid-cols-1 gap-12 items-center lg:grid-cols-2 lg:gap-16">
+      <div>
+        <h2 class="text-3xl font-bold mb-4">Every memory tool today is reactive</h2>
+        <p class="text-gray-400 mb-6 leading-relaxed">
+          You ask → it searches → returns. That's RAG with a nicer name.
+          Mem0, Zep, MemGPT, LangMem, OpenAI Memory, Claude Memory — all the same pattern.
+        </p>
+        <p class="text-gray-300 mb-6 leading-relaxed">
+          MemFront does something different:
+          it watches behavioral signal — what sessions you've had, what topics are trending,
+          what past conversations are about to become relevant — and pre-stages them
+          before you ask.
+        </p>
+        <div class="space-y-3">
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+            </div>
+            <span class="text-gray-300 text-sm">Call the hosted MemFront API with a workspace key. Local/self-host is optional, not required.</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+            </div>
+            <span class="text-gray-300 text-sm">The kernel keeps compact handles hot and pulls full context only when selected.</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+            </div>
+            <span class="text-gray-300 text-sm">Predict and Memory avoid LLM calls by default. Reasoning is the paid LLM layer.</span>
+          </div>
+        </div>
+      </div>
+      <div class="code-block rounded-xl p-6 glow">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+          <span class="ml-2 text-xs text-gray-500 mono">integration.py</span>
+        </div>
+        <pre class="mono text-sm leading-relaxed overflow-x-auto"><code><span class="text-purple-400">from</span> <span class="text-blue-300">ndpa</span> <span class="text-purple-400">import</span> <span class="text-white">Client</span>
+
+<span class="text-gray-400"># Initialize once</span>
+<span class="text-green-300">c</span> = <span class="text-white">Client</span>(<span class="text-yellow-300">api_key</span>=<span class="text-orange-300">"ndpa_..."</span>, <span class="text-yellow-300">platform</span>=<span class="text-orange-300">"myapp"</span>)
+
+<span class="text-gray-400"># Log every turn</span>
+<span class="text-green-300">c</span>.<span class="text-blue-300">log_turn</span>(<span class="text-green-300">session_id</span>, <span class="text-orange-300">"user"</span>, <span class="text-green-300">user_msg</span>)
+<span class="text-green-300">c</span>.<span class="text-blue-300">log_turn</span>(<span class="text-green-300">session_id</span>, <span class="text-orange-300">"assistant"</span>, <span class="text-green-300">reply</span>)
+
+<span class="text-gray-400"># Stage likely memory before the next query lands</span>
+<span class="text-green-300">stage</span> = <span class="text-green-300">c</span>.<span class="text-blue-300">stage</span>(<span class="text-green-300">session_id</span>, <span class="text-yellow-300">k</span>=<span class="text-orange-300">5</span>)
+
+<span class="text-gray-400"># Memory returns handles/previews, not full raw transcripts</span>
+<span class="text-green-300">matches</span> = <span class="text-green-300">c</span>.<span class="text-blue-300">get_predictions</span>(<span class="text-green-300">session_id</span>, <span class="text-yellow-300">query</span>=<span class="text-green-300">user_msg</span>)
+<span class="text-green-300">keys</span> = [<span class="text-green-300">m</span>[<span class="text-orange-300">"storage_key"</span>] <span class="text-purple-400">for</span> <span class="text-green-300">m</span> <span class="text-purple-400">in</span> <span class="text-green-300">matches</span>[<span class="text-orange-300">"predictions"</span>]]
+
+<span class="text-gray-400"># Hydrate full context only when needed</span>
+<span class="text-green-300">context</span> = <span class="text-green-300">c</span>.<span class="text-blue-300">hydrate</span>(<span class="text-green-300">keys</span>)</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- PQHR section -->
+  <section id="pqhr" class="border-y border-white/5 bg-white/[0.02]">
+    <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-2xl mb-12">
+        <div class="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-1 text-xs text-purple-300 mb-4">
+          New benchmark category
+        </div>
+        <h2 class="text-3xl font-bold mb-4">PQHR — the benchmark for predict-first memory</h2>
+        <p class="text-gray-400 leading-relaxed">
+          <strong class="text-white">Pre-Query Hit Rate</strong> measures predict-forward memory.
+          Given only the user's prior session trajectory — no current question, no explicit input —
+          can the system stage the right past context that will become relevant for their next session?
+        </p>
+        <p class="text-gray-500 mt-3 text-sm">
+          Vector DBs and embedding-based memory systems can't be scored on this.
+          They require an explicit query. PQHR is the metric for voice AI, ambient assistants,
+          and agentic loops. It measures a category reactive memory systems do not benchmark.
+        </p>
+      </div>
+
+      <div class="overflow-hidden rounded-xl border border-white/10">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/10 bg-white/5">
+              <th class="text-left px-5 py-3 text-gray-400 font-medium">Predictor</th>
+              <th class="text-right px-5 py-3 text-gray-400 font-medium">pqhr@1</th>
+              <th class="text-right px-5 py-3 text-gray-400 font-medium">pqhr@3</th>
+              <th class="text-right px-5 py-3 text-gray-400 font-medium">pqhr@5</th>
+              <th class="text-right px-5 py-3 text-gray-400 font-medium">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="bench-row border-b border-white/5">
+              <td class="px-5 py-3 text-gray-500 mono text-xs">Random baseline</td>
+              <td class="text-right px-5 py-3 text-gray-500 mono">0.205</td>
+              <td class="text-right px-5 py-3 text-gray-500 mono">0.505</td>
+              <td class="text-right px-5 py-3 text-gray-500 mono">0.687</td>
+              <td class="text-right px-5 py-3 text-gray-600 text-xs">sanity check</td>
+            </tr>
+            <tr class="bench-row border-b border-white/5">
+              <td class="px-5 py-3 text-gray-400 mono text-xs">Recency-only</td>
+              <td class="text-right px-5 py-3 text-gray-400 mono">0.209</td>
+              <td class="text-right px-5 py-3 text-gray-400 mono">0.503</td>
+              <td class="text-right px-5 py-3 text-gray-400 mono">0.680</td>
+              <td class="text-right px-5 py-3 text-gray-500 text-xs">bar to beat</td>
+            </tr>
+            <tr class="bench-row border-b border-white/5">
+              <td class="px-5 py-3 text-gray-300 mono text-xs">MemFront fixed multi-signal</td>
+              <td class="text-right px-5 py-3 text-gray-300 mono">—</td>
+              <td class="text-right px-5 py-3 text-gray-300 mono">—</td>
+              <td class="text-right px-5 py-3 text-gray-300 mono">0.846</td>
+              <td class="text-right px-5 py-3 text-gray-500 text-xs">W=7 public</td>
+            </tr>
+            <tr class="bench-row">
+              <td class="px-5 py-3 font-semibold text-white mono text-xs">MemFront adaptive multi-signal ★</td>
+              <td class="text-right px-5 py-3 text-indigo-400 font-bold mono">—</td>
+              <td class="text-right px-5 py-3 text-indigo-400 font-bold mono">—</td>
+              <td class="text-right px-5 py-3 text-indigo-400 font-bold mono">0.859</td>
+              <td class="text-right px-5 py-3 text-indigo-400 text-xs">W=10 public</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-gray-600 mt-3">18,773 samples · 500 synthetic users · LongMemEval public dataset · BM25 is the <strong>labeler</strong> (defines truth), not a competitor · BoW cosine is the predictor · fully reproducible</p>
+      <p class="text-xs text-gray-500 mt-2">Honest note: random@5 is 68.7% on this synthetic corpus because each user's candidate pool is small (~30–40 past convs). The launch claims are fixed W=7 multi-signal PQHR@5 at 84.6% and adaptive W=10 public PQHR@5 at 85.9%.</p>
+
+      <div class="mt-8 flex items-center gap-4">
+        <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/PQHR.md" class="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors">Read the spec →</a>
+        <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/PQHR_LEADERBOARD.md" class="text-gray-400 hover:text-gray-300 text-sm transition-colors">View leaderboard →</a>
+        <span class="text-gray-600 text-sm">Open PR to submit your score</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- External Benchmarks -->
+  <section id="benchmarks" class="max-w-6xl mx-auto px-6 py-20">
+    <div class="max-w-2xl mb-10">
+      <h2 class="text-3xl font-bold mb-4">External benchmarks</h2>
+      <p class="text-gray-400">
+        MemFront reports each layer with its own metric: PQHR for Predict,
+        hit@K for Memory, latency/storage for Hydration, and E2E LLM judge
+        for Reasoning.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2">
+      <!-- LongMemEval card -->
+      <div class="border border-white/10 rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-white">LongMemEval</h3>
+          <span class="mono text-xs text-gray-500">500 QA questions</span>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mono">77.6%</div>
+            <div class="text-xs text-gray-500 mt-1">hit@1</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mono">86.8%</div>
+            <div class="text-xs text-gray-500 mt-1">hit@3</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mono">90.6%</div>
+            <div class="text-xs text-gray-500 mt-1">hit@5</div>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 border-t border-white/5 pt-3">
+          Latest metadata-only Memory retrieval run. Reasoning E2E is reported separately below.
+        </div>
+      </div>
+      <!-- LoCoMo card -->
+      <div class="border border-white/10 rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-white">LoCoMo</h3>
+          <span class="mono text-xs text-gray-500">1,982 QA items</span>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mono">61.5%</div>
+            <div class="text-xs text-gray-500 mt-1">hit@1</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mono">79.0%</div>
+            <div class="text-xs text-gray-500 mt-1">hit@3</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-indigo-400 mono">85.1%</div>
+            <div class="text-xs text-gray-500 mt-1">hit@5</div>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 border-t border-white/5 pt-3">
+          Latest local metadata-only Memory retrieval run.
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer metrics table -->
+    <h3 class="font-semibold text-gray-300 mb-4 text-sm">Verified metrics by MemFront layer</h3>
+    <div class="overflow-hidden rounded-xl border border-white/10">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10 bg-white/5">
+            <th class="text-left px-5 py-3 text-gray-400 font-medium">Layer</th>
+            <th class="text-left px-5 py-3 text-gray-400 font-medium">Metric</th>
+            <th class="text-right px-5 py-3 text-gray-400 font-medium">Verified result</th>
+            <th class="text-left px-5 py-3 text-gray-400 font-medium">What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bench-row border-b border-white/5">
+            <td class="px-5 py-3 text-gray-300">Predict</td>
+            <td class="px-5 py-3 text-gray-500 mono">PQHR@5</td>
+            <td class="text-right px-5 py-3 text-indigo-400 font-semibold mono">85.9%</td>
+            <td class="px-5 py-3 text-gray-500 text-xs">adaptive W=10 public; fixed W=7 is 84.6%</td>
+          </tr>
+          <tr class="bench-row border-b border-white/5">
+            <td class="px-5 py-3 text-gray-300">Memory</td>
+            <td class="px-5 py-3 text-gray-500 mono">LongMemEval retrieval@5</td>
+            <td class="text-right px-5 py-3 text-indigo-400 font-semibold mono">90.6%</td>
+            <td class="px-5 py-3 text-gray-500 text-xs">latest metadata-only run</td>
+          </tr>
+          <tr class="bench-row border-b border-white/5">
+            <td class="px-5 py-3 text-gray-300">Memory</td>
+            <td class="px-5 py-3 text-gray-500 mono">LoCoMo retrieval@5</td>
+            <td class="text-right px-5 py-3 text-indigo-400 font-semibold mono">85.1%</td>
+            <td class="px-5 py-3 text-gray-500 text-xs">latest local metadata-only run</td>
+          </tr>
+          <tr class="bench-row border-b border-white/5">
+            <td class="px-5 py-3 text-gray-300">Hydration</td>
+            <td class="px-5 py-3 text-gray-500 mono">local-FS raw context fetch</td>
+            <td class="text-right px-5 py-3 text-indigo-400 font-semibold mono">0.49ms</td>
+            <td class="px-5 py-3 text-gray-500 text-xs">local API p50; p95 0.88ms; not QA</td>
+          </tr>
+          <tr class="bench-row">
+            <td class="px-5 py-3 text-gray-300">Reasoning</td>
+            <td class="px-5 py-3 text-gray-500 mono">LongMemEval-S E2E LLM judge</td>
+            <td class="text-right px-5 py-3 text-indigo-400 font-semibold mono">85.2%</td>
+            <td class="px-5 py-3 text-gray-500 text-xs">current repaired full run; optional answer layer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-600 mt-2">Most competing systems publish full-stack QA accuracy, not retrieval hit@K. MemFront does not compare its retrieval hit@K to competitor QA numbers.</p>
+    <p class="text-xs text-yellow-600 mt-1">* Predict latency is staged/warm latency. Cold non-staged requests are measured separately and should not be described as the fast path.</p>
+    <p class="text-xs text-gray-600 mt-1">Reproduce: <code class="mono">python3 -m eval.metadata_retrieval_eval --benchmark longmemeval</code> · <code class="mono">python3 -m eval.locomo_runner</code> · <code class="mono">python3 -m eval.compare_latency --profile staged</code></p>
+  </section>
+
+  <!-- How it works -->
+  <section class="border-y border-white/5 bg-white/[0.02]">
+    <div class="max-w-6xl mx-auto px-6 py-20">
+      <h2 class="text-3xl font-bold mb-12 text-center">How it works</h2>
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="text-center">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4 text-xl">1</div>
+          <h4 class="font-medium text-white mb-2 text-sm">Hook captures signal</h4>
+          <p class="text-gray-500 text-xs leading-relaxed">Every turn is queued locally so capture does not block generation.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4 text-xl">2</div>
+          <h4 class="font-medium text-white mb-2 text-sm">Ingestion indexes</h4>
+          <p class="text-gray-500 text-xs leading-relaxed">Compact top terms, previews, handles, timestamps, and storage keys stay hot in Postgres.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4 text-xl">3</div>
+          <h4 class="font-medium text-white mb-2 text-sm">Kernel scores past</h4>
+          <p class="text-gray-500 text-xs leading-relaxed">Recency + frequency + topic overlap. Behavioral signal, no LLM in path.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4 text-xl">4</div>
+          <h4 class="font-medium text-white mb-2 text-sm">Context staged</h4>
+          <p class="text-gray-500 text-xs leading-relaxed">Top-K predictions returned. Inject into system prompt before generation.</p>
+        </div>
+      </div>
+      <div class="mt-12 code-block rounded-xl p-4 mono text-xs text-gray-400 max-w-3xl mx-auto">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-2 h-2 rounded-full bg-white/10"></div>
+          <span class="text-gray-600">system</span>
+        </div>
+        User message → Hook captures event locally<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Background queue posts to Ingestion API<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Behavioral kernel scores hot metadata handles<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;by recency · frequency · topic overlap<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Predictions API returns top-K staged handles<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <span class="text-indigo-400">Stage in system prompt BEFORE generation</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- For platform engineers -->
+  <section class="max-w-6xl mx-auto px-6 py-20">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
+      <div>
+        <h2 class="text-3xl font-bold mb-4">For platform engineers</h2>
+        <p class="text-gray-400 mb-6 leading-relaxed">
+          Drop MemFront into any AI product. The SDK is platform-agnostic.
+          Works with Claude, GPT, Gemini — or any LLM.
+        </p>
+        <div class="space-y-4">
+          <div class="border border-white/10 rounded-lg p-4">
+            <div class="text-sm font-medium text-white mb-1">Python SDK</div>
+            <div class="mono text-xs text-gray-400">pip install ndpa</div>
+          </div>
+          <div class="border border-white/10 rounded-lg p-4">
+            <div class="text-sm font-medium text-white mb-1">TypeScript SDK</div>
+            <div class="mono text-xs text-gray-400">npm install ndpa</div>
+          </div>
+          <div class="border border-white/10 rounded-lg p-4">
+            <div class="text-sm font-medium text-white mb-1">Self-hostable</div>
+            <div class="text-xs text-gray-400">Any Postgres + edge function runtime. No vendor lock-in.</div>
+          </div>
+        </div>
+        <div class="mt-6 space-y-2 text-sm text-gray-400">
+          <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/INTEGRATION.md" class="block hover:text-indigo-400 transition-colors">→ Integration guide (30s quickstart)</a>
+          <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/ARCHITECTURE.md" class="block hover:text-indigo-400 transition-colors">→ Architecture & scaling</a>
+          <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/SECURITY.md" class="block hover:text-indigo-400 transition-colors">→ Security & GDPR</a>
+          <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/COMPARISON.md" class="block hover:text-indigo-400 transition-colors">→ vs Mem0, Zep, MemGPT, OpenAI Memory</a>
+        </div>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold text-white mb-4">Production characteristics</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center py-3 border-b border-white/5">
+            <span class="text-gray-400 text-sm">Hook latency</span>
+            <span class="mono text-sm text-white">warm staged path</span>
+          </div>
+          <div class="flex justify-between items-center py-3 border-b border-white/5">
+            <span class="text-gray-400 text-sm">Prediction P50</span>
+            <span class="mono text-sm text-white">cold pooler smoke ~700ms</span>
+          </div>
+          <div class="flex justify-between items-center py-3 border-b border-white/5">
+            <span class="text-gray-400 text-sm">Rate limit</span>
+            <span class="mono text-sm text-white">pending hosted config</span>
+          </div>
+          <div class="flex justify-between items-center py-3 border-b border-white/5">
+            <span class="text-gray-400 text-sm">Batch size</span>
+            <span class="mono text-sm text-white">pending hosted config</span>
+          </div>
+          <div class="flex justify-between items-center py-3 border-b border-white/5">
+            <span class="text-gray-400 text-sm">GPU required</span>
+            <span class="text-green-400 text-sm font-medium">No</span>
+          </div>
+          <div class="flex justify-between items-center py-3 border-b border-white/5">
+            <span class="text-gray-400 text-sm">Embedding API</span>
+            <span class="text-green-400 text-sm font-medium">No</span>
+          </div>
+          <div class="flex justify-between items-center py-3">
+            <span class="text-gray-400 text-sm">LLM in hot path</span>
+            <span class="text-green-400 text-sm font-medium">No</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Four layers -->
+  <section class="border-y border-white/5 bg-white/[0.02]">
+    <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-2xl mb-12">
+        <h2 class="text-3xl font-bold mb-4">Four layers, one API</h2>
+        <p class="text-gray-400">Use the layers you need. Measure each one with the right metric.</p>
+      </div>
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <!-- MemFront core -->
+        <div class="border border-white/10 rounded-xl p-8 bg-white/[0.025]">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mono text-[10px] text-emerald-300">01</div>
+            <div>
+              <div class="font-bold text-white text-lg">MemFront Predict</div>
+              <div class="text-xs text-emerald-300">pre-query staging</div>
+            </div>
+          </div>
+          <p class="mb-5 text-sm leading-relaxed text-gray-500">Stages likely context before the current query exists.</p>
+          <div class="space-y-2.5 text-sm mb-6">
+            <div class="flex justify-between"><span class="text-gray-500">Warm P50</span><span class="text-white mono">0.85ms</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Cold miss</span><span class="text-white mono">~342ms local</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">PQHR@5</span><span class="text-white mono">85.9%</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Input</span><span class="text-white mono">trajectory</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Output</span><span class="text-white mono">staged handles</span></div>
+          </div>
+          <div class="border-t border-white/5 pt-4">
+            <div class="text-xs text-gray-500 mb-2 uppercase tracking-wide font-medium">Best for</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="text-xs bg-white/5 border border-white/10 text-gray-300 rounded-full px-2.5 py-1">Voice AI</span>
+              <span class="text-xs bg-white/5 border border-white/10 text-gray-300 rounded-full px-2.5 py-1">Agents</span>
+            </div>
+          </div>
+        </div>
+        <!-- MemFront Memory -->
+        <div class="border border-white/10 rounded-xl p-8 bg-white/[0.025]">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mono text-[10px] text-sky-300">02</div>
+            <div>
+              <div class="font-bold text-white text-lg">MemFront Memory</div>
+              <div class="text-xs text-sky-300">explicit retrieval</div>
+            </div>
+          </div>
+          <p class="mb-5 text-sm leading-relaxed text-gray-500">Searches hot metadata and returns ranked handles, previews, and scores.</p>
+          <div class="space-y-2.5 text-sm mb-6">
+            <div class="flex justify-between"><span class="text-gray-500">LongMemEval hit@5</span><span class="text-white mono">90.6%</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">LoCoMo hit@5</span><span class="text-white mono">85.1%</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Mode</span><span class="text-white mono">metadata-only</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Embeddings required</span><span class="text-green-400 mono">No</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Price</span><span class="text-green-400 font-semibold mono">$0.10 / 1K</span></div>
+          </div>
+          <div class="border-t border-white/5 pt-4">
+            <div class="text-xs text-gray-500 mb-2 uppercase tracking-wide font-medium">Best for</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="text-xs bg-white/5 border border-white/10 text-gray-300 rounded-full px-2.5 py-1">Chat apps</span>
+              <span class="text-xs bg-white/5 border border-white/10 text-gray-300 rounded-full px-2.5 py-1">Long memory</span>
+            </div>
+          </div>
+        </div>
+        <div class="border border-white/10 rounded-xl p-8 bg-white/[0.025]">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mono text-[10px] text-teal-300">03</div>
+            <div>
+              <div class="font-bold text-white text-lg">MemFront Hydration</div>
+              <div class="text-xs text-teal-300">raw context fetch</div>
+            </div>
+          </div>
+          <p class="mb-5 text-sm leading-relaxed text-gray-500">Fetches raw context only after Predict or Memory selects the handle.</p>
+          <div class="space-y-2.5 text-sm mb-6">
+            <div class="flex justify-between"><span class="text-gray-500">Local P50</span><span class="text-white mono">0.49ms</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Storage path</span><span class="text-white mono">cold tier</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Input</span><span class="text-white mono">storage_key</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Output</span><span class="text-white mono">raw context</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">QA benchmark</span><span class="text-gray-400 mono">no</span></div>
+          </div>
+        </div>
+        <div class="border border-white/10 rounded-xl p-8 bg-white/[0.025]">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mono text-[10px] text-rose-300">04</div>
+            <div>
+              <div class="font-bold text-white text-lg">MemFront Reasoning</div>
+              <div class="text-xs text-rose-300">optional answer layer</div>
+            </div>
+          </div>
+          <p class="mb-5 text-sm leading-relaxed text-gray-500">Runs LLM QA over selected hydrated memory. BYOK or hosted billing.</p>
+          <div class="space-y-2.5 text-sm mb-6">
+            <div class="flex justify-between"><span class="text-gray-500">Metric</span><span class="text-white mono">E2E LLM judge</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Best run</span><span class="text-white mono">85.2%</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Input</span><span class="text-white mono">hydrated context</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Output</span><span class="text-white mono">answer</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Price</span><span class="text-green-400 mono">$5/$40 / 1K</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="max-w-6xl mx-auto px-6 py-20">
+    <div class="max-w-2xl mb-12">
+      <h2 class="text-3xl font-bold mb-4">Pricing</h2>
+      <p class="text-gray-400">Four separately metered layers. Predict, Memory, and Hydration stay low-cost; Reasoning is premium because it can call an LLM.</p>
+    </div>
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div class="border border-white/10 rounded-xl p-6">
+        <div class="font-semibold text-white text-lg mb-1">Predict</div>
+        <div class="text-3xl font-bold text-white mb-1">$0.03</div>
+        <div class="text-sm text-gray-500 mb-5">pre-query staging</div>
+        <div class="space-y-2 text-sm text-gray-400 mb-6">
+          <div>Meter: 1K prediction requests</div>
+          <div>Adaptive W=10 PQHR@5: 85.9%</div>
+          <div>Fixed W=7 PQHR@5: 84.6%</div>
+        </div>
+        <a href="console.html" class="block text-center border border-white/10 hover:border-white/25 text-gray-300 font-medium px-4 py-2.5 rounded-lg transition-colors text-sm">Open console</a>
+      </div>
+      <div class="border border-sky-500/40 rounded-xl p-6 bg-sky-500/5">
+        <div class="font-semibold text-white text-lg mb-1">Memory</div>
+        <div class="text-3xl font-bold text-white mb-1">$0.10</div>
+        <div class="text-sm text-gray-500 mb-5">metadata retrieval</div>
+        <div class="space-y-2 text-sm text-gray-400 mb-6">
+          <div>Meter: 1K retrieval calls</div>
+          <div>LongMemEval retrieval@5: 90.6%</div>
+          <div>LoCoMo retrieval@5: 85.1%</div>
+          <div>Latest metadata-only retrieval runs</div>
+        </div>
+        <a href="console.html" class="block text-center bg-white hover:bg-zinc-200 text-zinc-950 font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm">Open console</a>
+      </div>
+      <div class="border border-white/10 rounded-xl p-6">
+        <div class="font-semibold text-white text-lg mb-1">Hydration</div>
+        <div class="text-3xl font-bold text-white mb-1">$0.05</div>
+        <div class="text-sm text-gray-500 mb-5">storage + bandwidth</div>
+        <div class="space-y-2 text-sm text-gray-400 mb-6">
+          <div>Meter: 1K fetches + bytes</div>
+          <div>Raw memory stays out of the hot path</div>
+          <div>Local hydration P50: 0.49ms</div>
+          <div>No QA score claimed; it is storage fetch</div>
+        </div>
+        <a href="console.html" class="block text-center border border-white/10 hover:border-white/25 text-gray-300 font-medium px-4 py-2.5 rounded-lg transition-colors text-sm">Open console</a>
+      </div>
+      <div class="border border-rose-500/40 rounded-xl p-6 bg-rose-500/5">
+        <div class="font-semibold text-white text-lg mb-1">Reasoning</div>
+        <div class="text-3xl font-bold text-white mb-1">$40</div>
+        <div class="text-sm text-gray-500 mb-5">optional LLM layer</div>
+        <div class="space-y-2 text-sm text-gray-400 mb-6">
+          <div>Meter: 1K hosted calls</div>
+          <div>BYOK orchestration: $5 / 1K</div>
+          <div>LongMemEval-S E2E: 85.2%</div>
+          <div>Runs over hydrated context</div>
+        </div>
+        <a href="console.html" class="block text-center border border-white/10 hover:border-white/25 text-gray-300 font-medium px-4 py-2.5 rounded-lg transition-colors text-sm">Open console</a>
+      </div>
+    </div>
+    <div class="mt-6 p-4 bg-white/[0.02] border border-white/5 rounded-lg text-sm text-gray-500">
+      <strong class="text-gray-400">Pricing note:</strong>
+      Predict should stay the lowest-cost path, Memory stays cheap retrieval, Hydration tracks storage/bandwidth, and Reasoning is the premium LLM layer.
+      Checkout activates when billing is configured on the hosted API.
+    </div>
+  </section>
+
+  <!-- CTA / Get Access -->
+  <section id="get-access" class="border-t border-white/5">
+    <div class="max-w-6xl mx-auto px-6 py-24 text-center">
+      <h2 class="text-4xl font-bold mb-4">Join the MemFront waitlist</h2>
+      <p class="text-gray-400 text-lg mb-8 max-w-xl mx-auto">
+        Get early access to predict-first memory for voice agents, chat products,
+        and AI apps that need context ready before the next prompt lands.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <form class="flex gap-2 w-full max-w-md" onsubmit="handleSignup(event)">
+          <input
+            id="email-input"
+            type="email"
+            placeholder="your@email.com"
+            class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors text-sm"
+            required
+          />
+          <button
+            type="submit"
+            class="bg-white hover:bg-zinc-200 text-zinc-950 font-semibold px-6 py-3 rounded-lg transition-colors whitespace-nowrap text-sm"
+          >
+            Join waitlist →
+          </button>
+        </form>
+      </div>
+      <p id="signup-status" class="mt-4 text-sm text-gray-500 hidden"></p>
+      <p class="text-xs text-gray-600 mt-4">No credit card required to start. MIT licensed. Self-hostable.</p>
+      <p class="mt-3"><a href="console.html" class="text-sm font-medium text-indigo-400 hover:text-indigo-300">Open console preview →</a></p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 px-6 py-8">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-3">
+        <span class="font-medium text-gray-400">MemFront</span>
+        <span>·</span>
+        <span>MIT License</span>
+        <span>·</span>
+        <a href="https://github.com/kaceburnette/ndpa" class="hover:text-gray-300 transition-colors">GitHub</a>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/PQHR.md" class="hover:text-gray-300 transition-colors">PQHR spec</a>
+        <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/PQHR_LEADERBOARD.md" class="hover:text-gray-300 transition-colors">Leaderboard</a>
+        <a href="https://github.com/kaceburnette/ndpa/blob/main/docs/SECURITY.md" class="hover:text-gray-300 transition-colors">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    async function handleSignup(e) {
+      e.preventDefault();
+      const email = document.getElementById('email-input').value.trim();
+      const status = document.getElementById('signup-status');
+      status.classList.remove('hidden');
+      status.textContent = 'Sending...';
+      status.className = 'mt-4 text-sm text-gray-400';
+
+      // For now, mailto fallback — swap in hosted waitlist capture when ready.
+      try {
+        // TODO: replace with hosted waitlist/signup endpoint.
+        window.location.href = `mailto:kaceburnette@gmail.com?subject=MemFront API Key Request&body=Email: ${encodeURIComponent(email)}%0A%0ARequesting early access to MemFront.`;
+        status.textContent = "Opening your email client — we'll get you set up.";
+        status.className = 'mt-4 text-sm text-green-400';
+      } catch (err) {
+        status.textContent = 'Something went wrong. Email kaceburnette@gmail.com directly.';
+        status.className = 'mt-4 text-sm text-red-400';
+      }
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const el = document.querySelector(a.getAttribute('href'));
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  </script>
+
+</body>
+</html>

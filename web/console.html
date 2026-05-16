@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MemFront Console</title>
+  <link rel="icon" type="image/png" href="assets/memfront-icon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: Inter, sans-serif; }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .nav-link.active {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #fff;
+    }
+    .field {
+      width: 100%;
+      border-radius: 0.375rem;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      padding: 0.625rem 0.75rem;
+      font-size: 0.875rem;
+      color: #fff;
+      outline: none;
+    }
+    .field:focus { border-color: rgba(52,211,153,0.75); }
+    .btn {
+      border-radius: 0.375rem;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .btn-primary { background: #fff; color: #09090b; }
+    .btn-primary:hover { background: #d4d4d8; }
+    .btn-secondary { border: 1px solid rgba(255,255,255,0.10); color: #d1d5db; }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+    .panel {
+      border-radius: 0.5rem;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.025);
+    }
+    .metric-label { color: #71717a; }
+    .pill {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      padding: 0.25rem 0.5rem;
+      font-size: 0.6875rem;
+      color: #a1a1aa;
+    }
+  </style>
+</head>
+<body class="bg-[#050506] text-gray-100 antialiased">
+  <div class="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
+    <aside class="border-b border-white/10 bg-[#09090b] lg:min-h-screen lg:border-b-0 lg:border-r">
+      <div class="flex items-center justify-between px-5 py-4 lg:block">
+        <a href="index.html" class="flex items-center gap-3">
+          <img src="assets/memfront-icon.png" alt="MemFront logo" class="h-8 w-8 rounded object-cover" />
+          <div>
+            <div class="font-semibold tracking-tight text-white">MemFront Console</div>
+            <div id="sideStatus" class="text-xs text-gray-500">not connected</div>
+          </div>
+        </a>
+        <a href="index.html" class="text-xs text-gray-500 hover:text-gray-300 lg:hidden">Home</a>
+      </div>
+
+      <nav class="grid grid-cols-2 gap-2 px-4 pb-4 text-sm lg:block lg:space-y-2 lg:pb-0">
+        <button class="nav-link active rounded-md border border-white/10 px-3 py-2 text-left text-gray-400 hover:text-white" data-screen="dashboard">Dashboard</button>
+        <button class="nav-link rounded-md border border-white/10 px-3 py-2 text-left text-gray-400 hover:text-white" data-screen="connection">Connection</button>
+        <button class="nav-link rounded-md border border-white/10 px-3 py-2 text-left text-gray-400 hover:text-white" data-screen="playground">Playground</button>
+        <button class="nav-link rounded-md border border-white/10 px-3 py-2 text-left text-gray-400 hover:text-white" data-screen="usage">Usage</button>
+        <button class="nav-link rounded-md border border-white/10 px-3 py-2 text-left text-gray-400 hover:text-white" data-screen="keys">API Keys</button>
+        <button class="nav-link rounded-md border border-white/10 px-3 py-2 text-left text-gray-400 hover:text-white" data-screen="billing">Billing</button>
+      </nav>
+
+      <div class="hidden px-5 py-6 lg:block">
+        <div class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-gray-400">
+          Connect to your MemFront API. Bearer keys stay in this browser; admin tokens are never saved.
+        </div>
+      </div>
+    </aside>
+
+    <main class="px-5 py-6 lg:px-8 lg:py-8">
+      <header class="mb-8 flex flex-col gap-4 border-b border-white/10 pb-6 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <div class="text-sm text-emerald-300">Predict-first memory pipeline</div>
+          <h1 class="mt-1 text-3xl font-bold tracking-tight text-white">MemFront console</h1>
+          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500">
+            MemFront returns handles first, keeps the likely context hot, and hydrates full memory only when the customer needs it.
+          </p>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-[minmax(220px,360px)_minmax(220px,360px)_auto]">
+          <input id="baseUrlInput" class="field mono" placeholder="http://localhost:8000" />
+          <input id="apiKeyInput" class="field mono" placeholder="live API key" type="password" />
+          <button id="saveConnectionBtn" class="btn btn-primary">Save</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="screen active">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 class="text-xl font-semibold text-white">Products</h2>
+            <p class="mt-1 text-sm text-gray-500">Four separately metered layers. Customers can use one layer or the full pipeline.</p>
+          </div>
+          <button id="refreshAllBtn" class="btn btn-secondary">Refresh</button>
+        </div>
+        <div class="grid gap-4 xl:grid-cols-4">
+          <article class="panel p-5">
+            <div class="text-xs font-medium uppercase text-indigo-300">Predict</div>
+            <div class="mt-2 text-lg font-semibold text-white">$0.03 / 1K</div>
+            <p class="mt-3 min-h-14 text-sm leading-relaxed text-gray-500">Stages likely memory before the user asks. Best for voice agents, live assistants, and low-latency agent loops.</p>
+            <div class="mt-5 space-y-3 text-sm">
+              <div class="flex justify-between gap-4"><span class="metric-label">Adaptive PQHR@5</span><span class="mono text-white">85.9%</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Warm staged P50</span><span class="mono text-white">0.85ms</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Output</span><span class="mono text-white">handles</span></div>
+            </div>
+          </article>
+          <article class="panel p-5">
+            <div class="text-xs font-medium uppercase text-sky-300">Memory</div>
+            <div class="mt-2 text-lg font-semibold text-white">$0.10 / 1K</div>
+            <p class="mt-3 min-h-14 text-sm leading-relaxed text-gray-500">Explicit memory search over compact metadata. Returns ranked handles, previews, scores, and storage keys.</p>
+            <div class="mt-5 space-y-3 text-sm">
+              <div class="flex justify-between gap-4"><span class="metric-label">LME retrieval@5</span><span class="mono text-white">90.6%</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">LoCoMo retrieval@5</span><span class="mono text-white">85.1%</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Storage</span><span class="mono text-white">metadata</span></div>
+            </div>
+          </article>
+          <article class="panel p-5">
+            <div class="text-xs font-medium uppercase text-teal-300">Hydration</div>
+            <div class="mt-2 text-lg font-semibold text-white">$0.05 / 1K + bytes</div>
+            <p class="mt-3 min-h-14 text-sm leading-relaxed text-gray-500">Fetches raw transcript or file content from Cloudflare R2 after Predict or Memory selects the handle.</p>
+            <div class="mt-5 space-y-3 text-sm">
+              <div class="flex justify-between gap-4"><span class="metric-label">Local API P50</span><span class="mono text-white">0.49ms</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Cold store</span><span class="mono text-white">R2</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Input</span><span class="mono text-white">storage_key</span></div>
+            </div>
+          </article>
+          <article class="panel p-5">
+            <div class="text-xs font-medium uppercase text-rose-300">Reasoning</div>
+            <div class="mt-2 text-lg font-semibold text-white">$5 BYOK / $40 hosted</div>
+            <p class="mt-3 min-h-14 text-sm leading-relaxed text-gray-500">Optional answer layer. It uses Memory plus Hydration, then runs an LLM only when the customer asks for final QA.</p>
+            <div class="mt-5 space-y-3 text-sm">
+              <div class="flex justify-between gap-4"><span class="metric-label">E2E LLM judge</span><span class="mono text-white">85.2%</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Mode</span><span class="mono text-white">BYOK/hosted</span></div>
+              <div class="flex justify-between gap-4"><span class="metric-label">Path</span><span class="mono text-white">premium</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="mt-6 panel p-5">
+          <div class="mb-3 text-sm font-medium text-white">Hosted architecture</div>
+          <div class="grid gap-3 text-sm md:grid-cols-4">
+            <div><span class="pill">1</span><div class="mt-2 text-white">Customer app logs turns</div><p class="mt-1 text-gray-500">SDK posts events with an API key.</p></div>
+            <div><span class="pill">2</span><div class="mt-2 text-white">Hot metadata stays in Supabase</div><p class="mt-1 text-gray-500">Terms, previews, timestamps, handles, usage.</p></div>
+            <div><span class="pill">3</span><div class="mt-2 text-white">Raw memory goes to R2</div><p class="mt-1 text-gray-500">Full text is fetched only by `/hydrate`.</p></div>
+            <div><span class="pill">4</span><div class="mt-2 text-white">Reasoning is optional</div><p class="mt-1 text-gray-500">LLM calls happen only on the premium path.</p></div>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+          <div class="panel p-5">
+            <div class="text-sm text-gray-500">API health</div>
+            <div id="healthValue" class="mono mt-3 text-2xl font-bold text-white">unknown</div>
+            <div id="healthDetail" class="mt-1 text-xs text-gray-600">Connect to your MemFront API endpoint.</div>
+          </div>
+          <div class="panel p-5">
+            <div class="text-sm text-gray-500">Account</div>
+            <div id="accountValue" class="mono mt-3 text-2xl font-bold text-white">none</div>
+            <div id="accountDetail" class="mt-1 text-xs text-gray-600">Paste a bearer key to authenticate.</div>
+          </div>
+          <div class="panel p-5">
+            <div class="text-sm text-gray-500">Billing</div>
+            <div id="billingValue" class="mono mt-3 text-2xl font-bold text-white">unknown</div>
+            <div id="billingDetail" class="mt-1 text-xs text-gray-600">Checkout activates when the API has a Stripe link.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="connection" class="screen">
+        <div class="mb-6">
+          <h2 class="text-xl font-semibold text-white">Connection</h2>
+          <p class="mt-1 text-sm text-gray-500">For hosted Vercel deploys this defaults to same-origin <span class="mono">/api</span>. Local development uses <span class="mono">http://localhost:8000</span>.</p>
+        </div>
+        <div class="grid gap-4 xl:grid-cols-2">
+          <div class="panel p-5">
+            <div class="grid gap-4">
+              <label class="block">
+                <span class="text-sm text-gray-400">API base URL</span>
+                <input id="baseUrlInput2" class="field mono mt-2" placeholder="http://localhost:8000" />
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">Bearer API key</span>
+                <input id="apiKeyInput2" class="field mono mt-2" placeholder="live API key" type="password" />
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button id="saveConnectionBtn2" class="btn btn-primary">Save connection</button>
+                <button id="testConnectionBtn" class="btn btn-secondary">Test</button>
+                <button id="clearConnectionBtn" class="btn btn-secondary">Clear</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel p-5">
+            <div class="mb-3 text-sm font-medium text-white">Config</div>
+            <pre id="configOutput" class="mono min-h-52 overflow-auto rounded-md bg-black/30 p-3 text-xs leading-relaxed text-gray-300">No config loaded.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="playground" class="screen">
+        <div class="mb-6">
+          <h2 class="text-xl font-semibold text-white">API playground</h2>
+          <p class="mt-1 text-sm text-gray-500">Exercise the hosted API exactly like a customer app: log memory, stage predictions, hydrate context, or run Reasoning.</p>
+        </div>
+        <div class="grid gap-4 xl:grid-cols-[420px_1fr]">
+          <div class="panel p-5">
+            <div class="grid gap-4">
+              <label class="block">
+                <span class="text-sm text-gray-400">Session ID</span>
+                <input id="sessionInput" class="field mono mt-2" value="demo-session" />
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">End user ID</span>
+                <input id="endUserInput" class="field mono mt-2" placeholder="optional" />
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">Query</span>
+                <textarea id="queryInput" class="field mt-2 min-h-24" placeholder="What context should be ready?"></textarea>
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">Storage keys for Hydration</span>
+                <textarea id="storageKeysInput" class="field mono mt-2 min-h-20" placeholder="one storage_key per line"></textarea>
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">BYOK OpenAI key for Reasoning</span>
+                <input id="byokOpenAIInput" class="field mono mt-2" type="password" placeholder="optional; not saved" />
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="stageBtn" class="btn btn-primary">Run /stage</button>
+                <button id="predictBtn" class="btn btn-secondary">Run /predictions</button>
+                <button id="hydrateBtn" class="btn btn-secondary">Run /hydrate</button>
+                <button id="reasoningBtn" class="btn btn-secondary">Run /reasoning</button>
+                <button id="sampleEventBtn" class="btn btn-secondary">Log sample event</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel p-5">
+            <div class="mb-3 flex items-center justify-between">
+              <div class="text-sm font-medium text-white">Response</div>
+              <button id="clearOutputBtn" class="text-xs text-gray-500 hover:text-gray-300">clear</button>
+            </div>
+            <pre id="playgroundOutput" class="mono min-h-[520px] overflow-auto rounded-md bg-black/30 p-3 text-xs leading-relaxed text-gray-300">No request yet.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="usage" class="screen">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+          <h2 class="text-xl font-semibold text-white">Usage</h2>
+            <p class="mt-1 text-sm text-gray-500">Per-product telemetry for billing and customer usage reporting.</p>
+          </div>
+          <button id="refreshUsageBtn" class="btn btn-secondary">Refresh usage</button>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div class="panel p-5"><div class="text-sm text-gray-500">Predict units</div><div id="usagePredict" class="mono mt-3 text-2xl font-bold text-white">0</div></div>
+          <div class="panel p-5"><div class="text-sm text-gray-500">Memory units</div><div id="usageMemory" class="mono mt-3 text-2xl font-bold text-white">0</div></div>
+          <div class="panel p-5"><div class="text-sm text-gray-500">Hydration bytes</div><div id="usageHydration" class="mono mt-3 text-2xl font-bold text-white">0</div></div>
+          <div class="panel p-5"><div class="text-sm text-gray-500">Reasoning units</div><div id="usageReasoning" class="mono mt-3 text-2xl font-bold text-white">0</div></div>
+        </div>
+        <pre id="usageOutput" class="mono mt-4 min-h-64 overflow-auto rounded-md bg-black/30 p-3 text-xs leading-relaxed text-gray-300">No usage loaded.</pre>
+      </section>
+
+      <section id="keys" class="screen">
+        <div class="mb-6">
+          <h2 class="text-xl font-semibold text-white">API keys</h2>
+          <p class="mt-1 text-sm text-gray-500">Admin-only minting uses the configured admin token and returns the raw key once.</p>
+        </div>
+        <div class="grid gap-4 xl:grid-cols-[420px_1fr]">
+          <div class="panel p-5">
+            <div class="grid gap-4">
+              <label class="block">
+                <span class="text-sm text-gray-400">Admin token</span>
+                <input id="adminTokenInput" class="field mono mt-2" type="password" placeholder="admin token" />
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">User ID</span>
+                <input id="newKeyUserInput" class="field mono mt-2" placeholder="customer_or_workspace_id" />
+              </label>
+              <label class="block">
+                <span class="text-sm text-gray-400">Platform</span>
+                <input id="newKeyPlatformInput" class="field mono mt-2" placeholder="customer app name" />
+              </label>
+              <button id="createKeyBtn" class="btn btn-primary">Create API key</button>
+            </div>
+          </div>
+          <div class="panel p-5">
+            <div class="mb-3 text-sm font-medium text-white">Created key</div>
+            <pre id="keyOutput" class="mono min-h-52 overflow-auto rounded-md bg-black/30 p-3 text-xs leading-relaxed text-gray-300">No key created.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="billing" class="screen">
+        <div class="mb-6">
+          <h2 class="text-xl font-semibold text-white">Billing</h2>
+          <p class="mt-1 text-sm text-gray-500">Simple pay-as-you-go packaging. Predict, Memory, and Hydration stay cheap; Reasoning is the premium LLM path.</p>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-5">
+          <div class="panel p-5"><div class="font-semibold text-white">Predict</div><div class="mt-2 text-sm text-gray-400">$0.03 / 1K staged prediction requests</div></div>
+          <div class="panel p-5"><div class="font-semibold text-white">Memory</div><div class="mt-2 text-sm text-gray-400">$0.10 / 1K retrieval requests</div></div>
+          <div class="panel p-5"><div class="font-semibold text-white">Hydration</div><div class="mt-2 text-sm text-gray-400">$0.05 / 1K R2 fetches plus returned bytes</div></div>
+          <div class="panel p-5"><div class="font-semibold text-white">Reasoning BYOK</div><div class="mt-2 text-sm text-gray-400">$5 / 1K orchestration calls</div></div>
+          <div class="panel p-5"><div class="font-semibold text-white">Reasoning Hosted</div><div class="mt-2 text-sm text-gray-400">$40 / 1K answer-generation calls</div></div>
+        </div>
+        <button id="checkoutBtn" class="btn btn-primary mt-6">Open checkout</button>
+        <pre id="billingOutput" class="mono mt-4 min-h-40 overflow-auto rounded-md bg-black/30 p-3 text-xs leading-relaxed text-gray-300">No checkout request yet.</pre>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const defaultApiBase = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:8000"
+      : `${window.location.origin}/api`;
+    const state = {
+      baseUrl: localStorage.getItem("ndpa_base_url") || defaultApiBase,
+      apiKey: localStorage.getItem("ndpa_api_key") || "",
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const pretty = (value) => JSON.stringify(value, null, 2);
+
+    function syncInputs() {
+      ["baseUrlInput", "baseUrlInput2"].forEach((id) => { $(id).value = state.baseUrl; });
+      ["apiKeyInput", "apiKeyInput2"].forEach((id) => { $(id).value = state.apiKey; });
+      $("sideStatus").textContent = state.apiKey ? "key saved" : "not connected";
+    }
+
+    function saveConnection(primary = true) {
+      const suffix = primary ? "" : "2";
+      state.baseUrl = $(`baseUrlInput${suffix}`).value.trim().replace(/\/$/, "") || defaultApiBase;
+      state.apiKey = $(`apiKeyInput${suffix}`).value.trim();
+      localStorage.setItem("ndpa_base_url", state.baseUrl);
+      if (state.apiKey) localStorage.setItem("ndpa_api_key", state.apiKey);
+      else localStorage.removeItem("ndpa_api_key");
+      syncInputs();
+      setStatus("saved", "Connection saved locally.");
+    }
+
+    function setStatus(status, detail) {
+      $("healthValue").textContent = status;
+      $("healthDetail").textContent = detail;
+    }
+
+    async function request(path, options = {}) {
+      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+      if (options.auth !== false && state.apiKey) headers.Authorization = `Bearer ${state.apiKey}`;
+      const resp = await fetch(`${state.baseUrl}${path}`, {
+        method: options.method || "GET",
+        headers,
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      });
+      const text = await resp.text();
+      let body;
+      try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
+      return body;
+    }
+
+    async function loadConfig() {
+      const cfg = await request("/config", { auth: false });
+      $("configOutput").textContent = pretty(cfg);
+      $("billingValue").textContent = cfg.billing_configured ? "ready" : "setup needed";
+      $("billingDetail").textContent = cfg.billing_configured ? "Checkout link configured." : "Set the Stripe payment link on the API.";
+      return cfg;
+    }
+
+    async function testConnection() {
+      try {
+        const [health, cfg] = await Promise.all([
+          request("/health", { auth: false }),
+          loadConfig(),
+        ]);
+        setStatus(health.status || "ok", `API ${cfg.api_base_url || state.baseUrl}`);
+        if (state.apiKey) {
+          const account = await request("/account");
+          $("accountValue").textContent = account.user_id || "authenticated";
+          $("accountDetail").textContent = account.platform || "platform not set";
+        }
+      } catch (err) {
+        setStatus("error", err.message);
+        $("configOutput").textContent = err.message;
+      }
+    }
+
+    async function refreshUsage() {
+      try {
+        const usage = await request("/usage?days=30");
+        $("usageOutput").textContent = pretty(usage);
+        const byProduct = Object.fromEntries((usage.products || []).map((p) => [p.product, p]));
+        $("usagePredict").textContent = byProduct.predict?.units ?? 0;
+        $("usageMemory").textContent = byProduct.memory?.units ?? 0;
+        $("usageHydration").textContent = byProduct.hydration?.bytes ?? 0;
+        $("usageReasoning").textContent = byProduct.reasoning?.units ?? 0;
+      } catch (err) {
+        $("usageOutput").textContent = err.message;
+      }
+    }
+
+    function playgroundPayload() {
+      const payload = {
+        session_id: $("sessionInput").value.trim() || "demo-session",
+        k: 5,
+      };
+      const query = $("queryInput").value.trim();
+      const endUser = $("endUserInput").value.trim();
+      if (query) payload.query = query;
+      if (endUser) payload.end_user_id = endUser;
+      return payload;
+    }
+
+    async function runPlayground(path) {
+      try {
+        let body;
+        if (path === "/hydrate") {
+          body = {
+            storage_keys: $("storageKeysInput").value.split(/\n+/).map((v) => v.trim()).filter(Boolean),
+          };
+          const endUser = $("endUserInput").value.trim();
+          if (endUser) body.end_user_id = endUser;
+        } else if (path === "/events") {
+          body = {
+            session_id: $("sessionInput").value.trim() || "demo-session",
+            events: [{ role: "user", content: $("queryInput").value.trim() || "Testing MemFront from the launch console." }],
+            platform: "console",
+          };
+          const endUser = $("endUserInput").value.trim();
+          if (endUser) body.end_user_id = endUser;
+        } else {
+          body = playgroundPayload();
+        }
+        const headers = {};
+        if (path === "/reasoning" && $("byokOpenAIInput").value.trim()) {
+          headers["X-OpenAI-API-Key"] = $("byokOpenAIInput").value.trim();
+        }
+        const result = await request(path, { method: "POST", body, headers });
+        $("playgroundOutput").textContent = pretty(result);
+      } catch (err) {
+        $("playgroundOutput").textContent = err.message;
+      }
+    }
+
+    async function createApiKey() {
+      try {
+        const adminToken = $("adminTokenInput").value.trim();
+        const body = {
+          user_id: $("newKeyUserInput").value.trim(),
+          platform: $("newKeyPlatformInput").value.trim() || null,
+        };
+        if (!body.user_id) throw new Error("User ID is required.");
+        const result = await request("/admin/api-keys", {
+          method: "POST",
+          auth: false,
+          headers: { "X-NDPA-Admin-Token": adminToken },
+          body,
+        });
+        $("keyOutput").textContent = pretty(result);
+      } catch (err) {
+        $("keyOutput").textContent = err.message;
+      }
+    }
+
+    async function checkout() {
+      try {
+        const result = await request("/checkout", { method: "POST", body: {} });
+        $("billingOutput").textContent = pretty(result);
+        if (result.url) window.open(result.url, "_blank", "noopener,noreferrer");
+      } catch (err) {
+        $("billingOutput").textContent = err.message;
+      }
+    }
+
+    document.querySelectorAll(".nav-link").forEach((link) => {
+      link.addEventListener("click", () => {
+        document.querySelectorAll(".nav-link").forEach((n) => n.classList.toggle("active", n === link));
+        document.querySelectorAll(".screen").forEach((screen) => screen.classList.toggle("active", screen.id === link.dataset.screen));
+      });
+    });
+
+    $("saveConnectionBtn").addEventListener("click", () => saveConnection(true));
+    $("saveConnectionBtn2").addEventListener("click", () => saveConnection(false));
+    $("testConnectionBtn").addEventListener("click", testConnection);
+    $("refreshAllBtn").addEventListener("click", () => { testConnection(); refreshUsage(); });
+    $("refreshUsageBtn").addEventListener("click", refreshUsage);
+    $("clearConnectionBtn").addEventListener("click", () => {
+      localStorage.removeItem("ndpa_base_url");
+      localStorage.removeItem("ndpa_api_key");
+      state.baseUrl = defaultApiBase;
+      state.apiKey = "";
+      syncInputs();
+    });
+    $("stageBtn").addEventListener("click", () => runPlayground("/stage"));
+    $("predictBtn").addEventListener("click", () => runPlayground("/predictions"));
+    $("hydrateBtn").addEventListener("click", () => runPlayground("/hydrate"));
+    $("reasoningBtn").addEventListener("click", () => runPlayground("/reasoning"));
+    $("sampleEventBtn").addEventListener("click", () => runPlayground("/events"));
+    $("clearOutputBtn").addEventListener("click", () => { $("playgroundOutput").textContent = "No request yet."; });
+    $("createKeyBtn").addEventListener("click", createApiKey);
+    $("checkoutBtn").addEventListener("click", checkout);
+
+    syncInputs();
+    loadConfig().catch(() => {});
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+[project]
+name = "memfront"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "asyncpg>=0.29",
+  "fastapi>=0.110",
+  "pydantic>=2.6",
+]
