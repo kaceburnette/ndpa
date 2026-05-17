@@ -1,0 +1,58 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "100.0% string-overlap"
+  },
+  "cost_usd": 0.0003,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 1.77,
+  "metrics": {
+    "overall": {
+      "accuracy": 1.0,
+      "n": 1
+    },
+    "single-session-user": {
+      "accuracy": 1.0,
+      "n": 1
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 1,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user graduated with a degree in Business Administration. (session_id=answer_280352e9, 2023/05/30)",
+      "ground_truth": "Business Administration",
+      "predicted_answer": "You graduated with a degree in Business Administration.",
+      "predicted_session_ids": [
+        "answer_280352e9",
+        "02bd2b90_3"
+      ],
+      "question": "What degree did I graduate with?",
+      "question_id": "e47becba",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 326,
+        "extraction_out": 30,
+        "reader_in": 237,
+        "reader_out": 9
+      }
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 563,
+    "out": 39
+  }
+}

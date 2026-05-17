@@ -7,13 +7,21 @@ Drop-in instrumentation for any AI conversation loop.
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 import urllib.error
 import urllib.request
 from typing import Any, Iterable, Optional
 
-DEFAULT_BASE_URL = "https://izackuempnhgoojtbgvi.supabase.co/functions/v1"
+# Default endpoint. Override at runtime by either:
+#   1. Passing base_url= to Client()
+#   2. Setting NDPA_BASE_URL in your environment
+# Hosted Supabase Edge Functions are no longer the default architecture.
+# The SDK defaults to local FastAPI for development until a hosted Core
+# endpoint is configured.
+_DEFAULT_API_URL = "http://localhost:8000"
+DEFAULT_BASE_URL = os.environ.get("NDPA_BASE_URL", _DEFAULT_API_URL)
 DEFAULT_TIMEOUT = 5.0
 BATCH_SIZE_LIMIT = 1000
 
@@ -124,8 +132,10 @@ class Client:
         """
         Get top-K relevant past conversations for this session.
 
-        Returns a dict with `predictions` (list of {session_id, content, score, ...}).
-        This is the read side of NDPA — what the AI should know before responding.
+        Returns a dict with `predictions` (list of {memory_handle, session_id,
+        content_preview, score, ...}). This is the hot read side of NDPA:
+        fast memory handles/previews/scores. Fetch raw full context through
+        Hydration when needed.
 
         For platforms (multi-tenant integrations): pass `end_user_id` to scope
         predictions to one of YOUR users.
@@ -138,6 +148,125 @@ class Client:
         resp = self._post_path("/predictions", payload, force_sync=True)
         return resp or {"predictions": []}
 
+    def stage(
+        self,
+        session_id: str = "",
+        *,
+        query: Optional[str] = None,
+        k: int = 5,
+        end_user_id: Optional[str] = None,
+    ) -> dict:
+        """
+        Precompute and cache top-K memory handles for a later hot read.
+
+        Call this between turns, before a voice call starts, or from a
+        background worker. A later get_predictions() call with the same
+        session/query/end_user_id/k returns from the staged cache.
+        """
+        payload: dict[str, Any] = {"session_id": session_id, "k": int(k)}
+        if query is not None:
+            payload["query"] = query
+        if end_user_id is not None:
+            payload["end_user_id"] = end_user_id
+        resp = self._post_path("/stage", payload, force_sync=True)
+        return resp or {"predictions": []}
+
+    def hydrate(
+        self,
+        *,
+        memory_handles: Optional[Iterable[str]] = None,
+        session_ids: Optional[Iterable[str]] = None,
+        storage_keys: Optional[Iterable[str]] = None,
+        end_user_id: Optional[str] = None,
+    ) -> dict:
+        """
+        Fetch raw context for selected memory handles/storage keys.
+
+        Hydration is separate from Memory retrieval: call get_predictions()
+        first for handles/previews/scores, then hydrate only the selected
+        handles that need raw full context.
+        """
+        payload: dict[str, Any] = {
+            "memory_handles": list(memory_handles or []),
+            "session_ids": list(session_ids or []),
+            "storage_keys": list(storage_keys or []),
+        }
+        if end_user_id is not None:
+            payload["end_user_id"] = end_user_id
+        resp = self._post_path("/hydrate", payload, force_sync=True)
+        return resp or {"contexts": []}
+
+    def reasoning(
+        self,
+        query: str,
+        *,
+        session_id: str = "",
+        k: int = 5,
+        end_user_id: Optional[str] = None,
+        model: Optional[str] = None,
+        context_char_limit: Optional[int] = None,
+        hydrate: bool = True,
+        openai_api_key: Optional[str] = None,
+    ) -> dict:
+        """
+        Premium answer layer: Memory -> optional Hydration -> LLM answer.
+
+        If `openai_api_key` is supplied, NDPA runs in BYOK mode for this call.
+        The key is sent only as an `X-OpenAI-API-Key` request header.
+        """
+        payload: dict[str, Any] = {
+            "query": query,
+            "session_id": session_id,
+            "k": int(k),
+            "hydrate": bool(hydrate),
+        }
+        if end_user_id is not None:
+            payload["end_user_id"] = end_user_id
+        if model is not None:
+            payload["model"] = model
+        if context_char_limit is not None:
+            payload["context_char_limit"] = int(context_char_limit)
+        headers = {"X-OpenAI-API-Key": openai_api_key} if openai_api_key else None
+        resp = self._post_path("/reasoning", payload, force_sync=True, extra_headers=headers)
+        return resp or {"answer": ""}
+
+    def get_config(self) -> dict:
+        """Fetch public product/pricing/metric config."""
+        return self._get_path("/config", auth=False) or {}
+
+    def get_account(self) -> dict:
+        """Fetch authenticated account metadata for the current API key."""
+        return self._get_path("/account", auth=True) or {}
+
+    def get_usage(self, *, days: int = 30) -> dict:
+        """Fetch usage summary for the current API key."""
+        return self._get_path(f"/usage?days={int(days)}", auth=True) or {"products": []}
+
+    def checkout(self) -> dict:
+        """Create or fetch the configured billing handoff URL."""
+        return self._post_path("/checkout", {}, force_sync=True) or {}
+
+    def admin_create_api_key(
+        self,
+        *,
+        admin_token: str,
+        user_id: str,
+        platform: Optional[str] = None,
+    ) -> dict:
+        """
+        Mint an NDPA API key. Requires server-side NDPA_ADMIN_TOKEN.
+
+        The raw key is returned once by the server.
+        """
+        payload = {"user_id": user_id, "platform": platform}
+        return self._post_path(
+            "/admin/api-keys",
+            payload,
+            force_sync=True,
+            auth=False,
+            extra_headers={"X-NDPA-Admin-Token": admin_token},
+        ) or {}
+
     # ── Internals ─────────────────────────────────────────────────────────────
 
     def _send(self, payload: dict) -> None:
@@ -147,17 +276,57 @@ class Client:
         else:
             self._post_path("/events", payload)
 
-    def _post_path(self, path: str, payload: dict, *, force_sync: bool = False) -> Optional[dict]:
+    def _get_path(
+        self,
+        path: str,
+        *,
+        auth: bool = True,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> Optional[dict]:
+        headers = {
+            "User-Agent": "ndpa-python/0.1.0",
+        }
+        if auth:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        if extra_headers:
+            headers.update(extra_headers)
+        req = urllib.request.Request(
+            f"{self.base_url}{path}",
+            method="GET",
+            headers=headers,
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            raise NDPAError(f"NDPA API error {e.code}: {body}") from e
+        except Exception as e:
+            raise NDPAError(f"NDPA request failed: {e}") from e
+
+    def _post_path(
+        self,
+        path: str,
+        payload: dict,
+        *,
+        force_sync: bool = False,
+        auth: bool = True,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> Optional[dict]:
         data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "ndpa-python/0.1.0",
+        }
+        if auth:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        if extra_headers:
+            headers.update(extra_headers)
         req = urllib.request.Request(
             f"{self.base_url}{path}",
             data=data,
             method="POST",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "User-Agent": "ndpa-python/0.1.0",
-            },
+            headers=headers,
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:

@@ -23,6 +23,12 @@ eval/data/
 eval/longmemeval_results.json
 eval/locomo_results.json
 
+# Local agent/runtime state
+.omx/
+memory/
+.python-version
+uv.lock
+
 # Build artifacts
 dist/
 build/

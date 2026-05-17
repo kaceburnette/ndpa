@@ -1,0 +1,220 @@
+{
+  "benchmark": "LongMemEval (end-to-end QA)",
+  "cost_usd": 0.0051,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 27.44,
+  "metrics": {
+    "overall": {
+      "accuracy": 0.7,
+      "n": 10
+    },
+    "single-session-user": {
+      "accuracy": 0.7,
+      "n": 10
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 10,
+  "published_comparison_note": "Published Mem0/Zep/TiMem numbers use the LongMemEval paper's official LLM-as-judge scorer. This run uses a lenient string-overlap proxy. Our number is a LOWER BOUND on true accuracy. For publication-grade comparison, re-grade with the official scorer.",
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "rows": [
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "ground_truth": "Business Administration",
+      "predicted_answer": "You graduated with a degree in Computer Science.",
+      "predicted_session_ids": [],
+      "question": "What degree did I graduate with?",
+      "question_id": "e47becba",
+      "tokens": {
+        "in": 325,
+        "out": 9
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "ground_truth": "45 minutes each way",
+      "predicted_answer": "You did not mention the length or duration of your daily commute to work.",
+      "predicted_session_ids": [
+        "answer_40a90d51",
+        "ultrachat_498215",
+        "5209e813_2",
+        "ultrachat_387144",
+        "ultrachat_311002"
+      ],
+      "question": "How long is my daily commute to work?",
+      "question_id": "118b2229",
+      "tokens": {
+        "in": 5574,
+        "out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "Target",
+      "predicted_answer": "You redeemed the $5 coupon on coffee creamer at Target using the Cartwheel app.",
+      "predicted_session_ids": [
+        "answer_d61669c7"
+      ],
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "question_id": "51a45a95",
+      "tokens": {
+        "in": 1400,
+        "out": 18
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "The Glass Menagerie",
+      "predicted_answer": "You attended a production of The Glass Menagerie at the local community theater.",
+      "predicted_session_ids": [
+        "answer_355c48bb",
+        "sharegpt_DGiqvVv_270",
+        "ultrachat_71618",
+        "7e17ae56_5"
+      ],
+      "question": "What play did I attend at the local community theater?",
+      "question_id": "58bf7951",
+      "tokens": {
+        "in": 4606,
+        "out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "Summer Vibes",
+      "predicted_answer": "The name of the playlist you created on Spotify is \"Summer Vibes.\"",
+      "predicted_session_ids": [
+        "answer_3e012175",
+        "01bd9def",
+        "7b1d1f43_1"
+      ],
+      "question": "What is the name of the playlist I created on Spotify?",
+      "question_id": "1e043500",
+      "tokens": {
+        "in": 3701,
+        "out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "Johnson",
+      "predicted_answer": "Your last name before you changed it was Johnson.",
+      "predicted_session_ids": [
+        "answer_f6168136",
+        "aaf71ce2_2"
+      ],
+      "question": "What was my last name before I changed it?",
+      "question_id": "c5e8278d",
+      "tokens": {
+        "in": 2461,
+        "out": 10
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "Serenity Yoga",
+      "predicted_answer": "You take yoga classes at Serenity Yoga and also practice at home using the Down Dog app, which you find very helpful, especially on days when you can't make it to the studio. Your favorite type of class is vinyasa flow.",
+      "predicted_session_ids": [
+        "answer_9398da02",
+        "ec8fa65d_2",
+        "ultrachat_270925",
+        "ultrachat_393203",
+        "ultrachat_84599"
+      ],
+      "question": "Where do I take yoga classes?",
+      "question_id": "6ade9755",
+      "tokens": {
+        "in": 5826,
+        "out": 47
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "a lighter shade of gray",
+      "predicted_answer": "You repainted your bedroom walls a lighter shade of gray.",
+      "predicted_session_ids": [
+        "answer_feb5200f"
+      ],
+      "question": "What color did I repaint my bedroom walls?",
+      "question_id": "6f9b354f",
+      "tokens": {
+        "in": 1465,
+        "out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "ground_truth": "February 14th",
+      "predicted_answer": "You volunteered at the \"Love is in the Air\" fundraising dinner in February.",
+      "predicted_session_ids": [
+        "answer_59547700",
+        "13f3da23_3",
+        "e6ab6a7b_2",
+        "ultrachat_5212",
+        "ultrachat_477344"
+      ],
+      "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+      "question_id": "58ef2f1c",
+      "tokens": {
+        "in": 5336,
+        "out": 16
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "ground_truth": "the sports store downtown",
+      "predicted_answer": "You bought your new tennis racket from a sports store downtown.",
+      "predicted_session_ids": [
+        "answer_c3567066",
+        "15232887_1"
+      ],
+      "question": "Where did I buy my new tennis racket from?",
+      "question_id": "f8c5f88b",
+      "tokens": {
+        "in": 2537,
+        "out": 12
+      },
+      "correct_llm_judge": true
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge)",
+  "split": "s",
+  "tokens": {
+    "in": 33231,
+    "out": 169
+  },
+  "metrics_llm_judge": {
+    "overall": {
+      "accuracy": 0.8,
+      "n": 10
+    },
+    "judge_model": "gpt-4.1-mini",
+    "judge_cost_usd": 0.0004,
+    "single-session-user": {
+      "accuracy": 0.8,
+      "n": 10
+    }
+  }
+}

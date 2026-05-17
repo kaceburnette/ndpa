@@ -1,0 +1,319 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "0.0% string-overlap"
+  },
+  "cost_usd": 0.0661,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 32.52,
+  "metrics": {
+    "overall": {
+      "accuracy": 0.0,
+      "n": 5
+    },
+    "single-session-preference": {
+      "accuracy": 0.0,
+      "n": 5
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 5,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "answer_session_ids": [
+        "answer_edb03329"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- Adobe Premiere Pro is a powerful video editing software with advanced settings that can help improve editing skills. (2023/05/21)\n- Key areas to master in Premiere Pro include the Timeline Panel, Audio Clip Mixer, Effects and Transitions panel, Dynamic Link with After Effects, Proxy Media and Ingest Settings, Multi-Camera Editing, and Export Settings with Media Encoder. (2023/05/21)\n- The Lumetri Color Panel in Premiere Pro is essential for color grading, with the Creative panel and Curves panel being important components to create a cohesive look. (2023/05/21)",
+      "ground_truth": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "predicted_answer": "You enjoy using Adobe Premiere Pro and are interested in advanced video editing settings. To learn more about video editing, especially with Premiere Pro, focus on mastering these key areas:\n\n- Timeline Panel customization and advanced features like track patching and clip grouping  \n- Audio Clip Mixer and audio effects such as Dynamics and EQ  \n- Effects and Transitions panel, including third-party plugins  \n- Dynamic Link integration with After Effects for motion graphics and visual effects  \n- Proxy Media and Ingest Settings to improve workflow performance  \n- Multi-Camera Editing techniques  \n- Export Settings and using Media Encoder for final output  \n- Lumetri Color Panel for color grading, especially using the Creative and Curves panels together  \n\nThese topics will help you deepen your editing skills. You can find tutorials and courses on Adobe\u2019s official website, video editing forums, and platforms like YouTube, LinkedIn Learning, or Skillshare that cover these advanced Premiere Pro features.",
+      "predicted_session_ids": [
+        "answer_edb03329",
+        "6a5b5a78",
+        "6dcf5fa0_1",
+        "d8b3e1c8_2",
+        "3392c0c7",
+        "ultrachat_10500",
+        "76967d22",
+        "sharegpt_osTHjYi_0",
+        "9f091256_1",
+        "sharegpt_DwfIyV9_0",
+        "3d0c9f89_1",
+        "898bef66",
+        "dc700e27",
+        "a2e2cb72_3",
+        "ultrachat_118671",
+        "84f2d563_1",
+        "b67748d1_1",
+        "e3cc9931_1",
+        "sharegpt_7edkkdO_19",
+        "ultrachat_419825",
+        "ultrachat_429689",
+        "1a9f5723_4",
+        "ultrachat_319799",
+        "sharegpt_sfofrkM_7",
+        "82ea1455_1",
+        "da704e79_2",
+        "sharegpt_Ny6xFzC_0",
+        "b2b3936f_2",
+        "2cfb48f2_5",
+        "ultrachat_49039"
+      ],
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "question_date": "2023/05/30 (Tue) 22:03",
+      "question_id": "8a2466db",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 16347,
+        "extraction_out": 124,
+        "reader_in": 16577,
+        "reader_out": 184
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_555dfb94"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- The user owns a Sony A7R IV camera. (session_id=answer_555dfb94, 2023/05/27)  \n- The user is upgrading their camera flash and has chosen the Godox V1 flash. (session_id=answer_555dfb94, 2023/05/27)  \n- The user is interested in cases or pouches to protect their Godox V1 flash. (session_id=answer_555dfb94, 2023/05/27)  \n- There are many camera bags specifically designed for Sony cameras, with options including backpacks, messenger bags, and shoulder bags. (session_id=answer_555dfb94, 2023/05/27)  \n- When recommending camera bags, important considerations include budget, amount of gear to carry, and preferred bag style. (session_id=answer_555dfb94, 2023/05/27)",
+      "ground_truth": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "predicted_answer": "You own a Sony A7R IV camera and have upgraded your flash to a Godox V1. To complement your setup, consider these accessories:\n\n- A protective case or pouch specifically for the Godox V1 flash to keep it safe.\n- A camera bag designed for Sony cameras, choosing from backpacks, messenger bags, or shoulder bags based on your budget, amount of gear, and preferred style.\n- Extra batteries and memory cards compatible with the Sony A7R IV.\n- A sturdy tripod suitable for your camera's weight.\n- Lens cleaning kits to maintain your lenses.\n- Remote shutter release for long exposures or self-portraits.\n- Additional lenses compatible with your Sony A7R IV to expand your shooting options.\n\nThese accessories will enhance your photography experience and protect your gear.",
+      "predicted_session_ids": [
+        "ultrachat_448784",
+        "a6074da9_1",
+        "sharegpt_GSC090N_6",
+        "3e9fce53_1",
+        "answer_555dfb94",
+        "ca929779_1",
+        "8fcfbe43_2",
+        "465e7ef9",
+        "sharegpt_InRLwN7_0",
+        "42165950_2",
+        "ultrachat_489051",
+        "ultrachat_506627",
+        "ultrachat_556731",
+        "ultrachat_319509",
+        "be1c6872",
+        "368276ab_3",
+        "sharegpt_m8q9RaM_0",
+        "sharegpt_Lk4UN8n_181",
+        "sharegpt_5cxEGva_147",
+        "63b51f8a_1",
+        "9863a1c8_3",
+        "dc18f65b",
+        "d75245ea",
+        "a67c1862_4",
+        "85b50955_1",
+        "98a893d5",
+        "ultrachat_474421",
+        "347bd498",
+        "e58109ed_1",
+        "79d53fd0_2"
+      ],
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "question_date": "2023/05/30 (Tue) 16:40",
+      "question_id": "06878be2",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 14830,
+        "extraction_out": 194,
+        "reader_in": 15130,
+        "reader_out": 158
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_d87a6ef8"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- The user has a strong interest in Artificial Intelligence (AI), specifically in multi-agent and multimodal reinforcement learning, with applications toward environmental sustainability and autonomous agents. (source: session sharegpt_xni9yYO_6, 2023/05/23)\n- The user aims to pursue a Master's in AI at the University of Edinburgh, followed by a PhD focusing on robotics and autonomous systems. (source: session sharegpt_xni9yYO_6, 2023/05/23)\n- The user is interested in publishing papers in peer-reviewed AI conferences such as NeurIPS, CVPR, ICML, ICLR, and ICCV. (source: session sharegpt_xni9yYO_6, 2023/05/23)\n- The user follows research and publications in multi-agent and multimodal reinforcement learning, including work by Dr. Stefano V Aldrich at the University of Edinburgh. (source: session sharegpt_xni9yYO_6, 2023/05/23)\n- The user has experience deploying over 30 deep learning models involving computer vision, NLP, and reinforcement learning, and holds a patent for an AI algorithm (US11205041B2, granted in 2021). (source: session sharegpt_xni9yYO_6, 2023/05/23)\n\nNo other sessions mention specific recent publications or conferences related to AI or reinforcement learning.\n\n# Summary for recommendations:\n- Conferences of interest: NeurIPS, CVPR, ICML, ICLR, ICCV (all top-tier AI and computer vision conferences)\n- Research area: multi-agent and multimodal reinforcement learning, robotics, autonomous systems\n- Suggested to follow recent publications by Dr. Stefano V Aldrich (University of Edinburgh) and related research groups in these fields.\n\n# No explicit recent publication titles or articles were provided in the conversation.",
+      "ground_truth": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "predicted_answer": "You are interested in multi-agent and multimodal reinforcement learning, robotics, and autonomous systems, with a focus on environmental sustainability. You aim to publish in top AI conferences such as NeurIPS, CVPR, ICML, ICLR, and ICCV. You also follow research by Dr. Stefano V Aldrich at the University of Edinburgh.\n\nBased on this, recent publications and conferences you might find interesting include:\n\n- Papers from the latest editions of NeurIPS, ICML, ICLR, CVPR, and ICCV focusing on multi-agent reinforcement learning and multimodal learning.\n\n- Research outputs from the University of Edinburgh\u2019s School of Informatics, especially work by Dr. Stefano V Aldrich on multi-agent and multimodal reinforcement learning.\n\n- Workshops and special sessions at these conferences dedicated to robotics, autonomous systems, and AI for environmental sustainability.\n\nSince you have not mentioned specific recent papers, I recommend regularly checking the proceedings of these conferences and following Dr. Aldrich\u2019s publications and related research groups at Edinburgh for the most up-to-date work aligned with your interests.",
+      "predicted_session_ids": [
+        "sharegpt_xni9yYO_6",
+        "ultrachat_165893",
+        "ultrachat_533748",
+        "answer_d87a6ef8",
+        "sharegpt_FYqt26U_0",
+        "c884b67a_1",
+        "ultrachat_569211",
+        "c7270a1b_1",
+        "ultrachat_382018",
+        "2bac8799_3",
+        "sharegpt_E0YL5SX_157",
+        "ultrachat_299979",
+        "e6921729",
+        "sharegpt_GrLzv0V_262",
+        "sharegpt_Vjkqc5J_0",
+        "5a6b1065",
+        "ultrachat_93325",
+        "27d9e492_2",
+        "11e9d591_1",
+        "c51583cd_1",
+        "220cb2a0_2",
+        "5f1f5891",
+        "ultrachat_74821",
+        "47ec1674_2",
+        "sharegpt_sbnodfn_144",
+        "9398da02",
+        "d49b1a24_1",
+        "ultrachat_458202",
+        "1ef63c66",
+        "sharegpt_fK7pfNf_0"
+      ],
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "question_date": "2023/05/30 (Tue) 13:53",
+      "question_id": "75832dbd",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 16886,
+        "extraction_out": 390,
+        "reader_in": 17382,
+        "reader_out": 214
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_d586e9cd"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "NO_RELEVANT_FACTS",
+      "ground_truth": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "predicted_answer": "You did not mention any preferences or past hotel choices related to Miami. However, based on your interest in hotels with great city views and rooftop amenities (as seen in your Seattle hotel preferences), you might prefer a Miami hotel that offers stunning skyline or waterfront views and possibly a rooftop pool or lounge. Consider hotels in Miami Beach or downtown Miami that emphasize these features.",
+      "predicted_session_ids": [
+        "f20e72e4_1",
+        "6a747f2e",
+        "answer_d586e9cd",
+        "08ca1f31_2",
+        "53dc1394",
+        "c6c3a982_1",
+        "sharegpt_vbNrVtS_293",
+        "8464304d_2",
+        "sharegpt_DWorlZE_0",
+        "3c3a9042_3",
+        "3f4611f4",
+        "eb0d8dc1_2",
+        "3692218d_1",
+        "ba01118a",
+        "sharegpt_3D3oQC0_131",
+        "25b1afbc",
+        "e25d434b",
+        "5bd9f1e6_4",
+        "e0004164_3",
+        "33d0e4b3_2",
+        "sharegpt_9EM9xb8_46",
+        "sharegpt_6ZpPBwe_0",
+        "610299eb_1",
+        "c3023a45_1",
+        "ultrachat_95206",
+        "sharegpt_pc6mFD7_39",
+        "32d6bf49",
+        "sharegpt_aVExml0_92",
+        "sharegpt_nHJzPFD_0",
+        "33a813dd_2"
+      ],
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "question_date": "2023/05/30 (Tue) 20:23",
+      "question_id": "0edc2aef",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 15041,
+        "extraction_out": 6,
+        "reader_in": 15154,
+        "reader_out": 72
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_9b182436"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- The user is interested in cultural events or festivals that celebrate language diversity and cultural exchange, similar to a cultural festival they volunteered at last month. (session_id=answer_9b182436, 2023/05/29)\n- Suggested ways to find cultural events include checking online event calendars and contacting embassies or consulates of countries with languages of interest, as they often host cultural events, language festivals, or national day celebrations open to the public. (session_id=answer_9b182436, 2023/05/29)\n- Examples of cultural events that might interest the user include language festivals, polyglot conferences, language exchange festivals, and linguistic diversity festivals. (session_id=answer_9b182436, 2023/05/29)\n- The assistant does not have access to the user's location, so cannot provide specific local event recommendations. (session_id=answer_9b182436, 2023/05/29)",
+      "ground_truth": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "predicted_answer": "You mentioned enjoying cultural festivals that celebrate language diversity and cultural exchange, similar to the one you volunteered at last month. While I don\u2019t have access to your location to provide specific local events, I suggest checking online event calendars and contacting embassies or consulates of countries whose languages interest you, as they often host cultural events or language festivals open to the public. Examples of events you might enjoy include language festivals, polyglot conferences, language exchange festivals, and linguistic diversity celebrations.",
+      "predicted_session_ids": [
+        "answer_9b182436",
+        "880ee13e",
+        "ultrachat_267380",
+        "a98ff421_1",
+        "465f0d1b_1",
+        "ultrachat_510702",
+        "ultrachat_39307",
+        "58ae7c4f_3",
+        "c9b1c309_4",
+        "ultrachat_431916",
+        "203bf3fa_2",
+        "0a00a4ca_2",
+        "sharegpt_Vjkqc5J_0",
+        "ultrachat_422353",
+        "d20be4f3_1",
+        "7128c070_2",
+        "ultrachat_557683",
+        "ultrachat_152094",
+        "ultrachat_16847",
+        "e4a1b565_2",
+        "f863a648_3",
+        "b78242f5_1",
+        "90403fb9_3",
+        "64071e19_2",
+        "sharegpt_NxkBiMe_0",
+        "ultrachat_126689",
+        "5dcfc9e1_1",
+        "147e93c4",
+        "sharegpt_2LrB18X_13",
+        "99887392_1"
+      ],
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "question_date": "2023/05/30 (Tue) 22:15",
+      "question_id": "35a27287",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 15571,
+        "extraction_out": 199,
+        "reader_in": 15876,
+        "reader_out": 97
+      },
+      "correct_llm_judge": true
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 158794,
+    "out": 1638
+  },
+  "metrics_llm_judge": {
+    "overall": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "judge_model": "gpt-4.1-mini",
+    "judge_cost_usd": 0.0009,
+    "single-session-preference": {
+      "accuracy": 0.8,
+      "n": 5
+    }
+  }
+}

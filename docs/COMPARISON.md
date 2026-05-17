@@ -1,78 +1,93 @@
 # NDPA vs the Memory Landscape
 
-NDPA isn't competing with vector stores. It sits one layer up. Most existing
-"AI memory" tools are reactive — they retrieve when asked. NDPA is predictive
-— it stages context before the user asks.
+NDPA sits one layer above vector stores and conventional memory systems. It
+has four product layers, and each layer needs its own comparison.
 
-## Side-by-side
+Predictive memory index for AI apps. Core returns handles/previews/scores;
+Hydration fetches raw context only when needed.
 
-|                          | NDPA          | Mem0   | Zep    | MemGPT/Letta | LangMem | OpenAI Memory | Claude Memory |
-|--------------------------|---------------|--------|--------|--------------|---------|---------------|---------------|
-| **Retrieval model**      | Predictive    | Reactive | Reactive | Reactive  | Reactive | Reactive | Reactive |
-| **Cross-platform**       | Yes (any LLM) | Single | Single | Single | Single | OpenAI only | Anthropic only |
-| **Behavioral signal**    | Yes (file + conv) | No | No | No | No | No | No |
-| **Cold start**           | Onboard via .ndp import or static analysis | Empty | Empty | Empty | Empty | Empty | Empty |
-| **Self-host**            | Yes (Supabase) | Yes | Yes | Yes | Yes | No | No |
-| **Open source**          | MIT | Apache | Apache | Apache | MIT | No | No |
-| **Embeddings required?** | No | Yes | Yes | Yes | Yes | Unknown | Unknown |
-| **Latency at retrieval** | <2s (no GPU) | 200-500ms (embed + vector hop) | similar | similar | similar | TBD | TBD |
-| **Portable format**      | .ndp bundle | No | No | No | No | No | No |
-| **GDPR delete**          | One SQL stmt | Yes | Yes | Yes | Yes | Manual | Manual |
-| **License cost**         | Free/MIT | Free OSS / paid hosted | Paid hosted | Free OSS | Free OSS | Bundled w/ Plus | Bundled w/ Pro |
+| NDPA layer | What it does | Correct benchmark |
+|---|---|---|
+| **Predict** | Stages context from trajectory before a query exists | PQHR |
+| **Memory** | Retrieves memory handles/previews/scores for an explicit query | LongMemEval / LoCoMo retrieval hit@K |
+| **Hydration** | Fetches raw context for selected handles | Latency / cost / storage efficiency |
+| **Reasoning** | Answers questions over retrieved/hydrated context | LongMemEval E2E LLM judge |
 
-## What NDPA is good at
+Do not compare retrieval hit@K to competitor full-stack QA accuracy. Those
+are different metrics. Do not compare Hydration to QA systems either;
+Hydration is a storage/context-fetch step, not an answer layer.
 
-- **Predicting context before the user asks**, from behavioral patterns
-- **Cross-platform memory** (your ChatGPT history informs your Claude
-  session)
-- **Fast retrieval** — no embeddings, no vector DB, single Postgres query
-- **Open + portable** — `.ndp` file format means no vendor lock-in
-- **Cheap to run** — BoW cosine + recency decay. Pennies per million events.
+## Side-by-Side
 
-## What NDPA is NOT good at (yet)
+| Capability | NDPA | Mem0 / Zep / Letta / LangMem | OpenAI / Claude Memory |
+|---|---|---|---|
+| Predict-forward staging before query | Yes | Not generally published as a standalone API/benchmark | No public standalone benchmark |
+| Reactive retrieval | Yes | Yes | Product-internal |
+| Raw context hydration | Yes | Varies | Product-internal |
+| Optional E2E QA layer | Yes | Yes | Product-internal |
+| Cross-platform memory | Yes | Usually app/framework scoped | Provider scoped |
+| Portable `.ndp` bundle | Yes | No common portable format | No |
+| No LLM in retrieval hot path | Yes for Predict/Memory/Hydration | Usually no; many use embeddings/graphs/LLM extraction | Not disclosed |
+| Self-hostable | Yes | Varies | No |
 
-- **Semantic similarity on very specific phrases** — embeddings beat BoW
-  on "find the conversation where I mentioned a particular concept by
-  paraphrase." If you need that, add embeddings as a layer (we may ship
-  this as optional).
-- **Sub-second predictions** at scale — we're at 1-2s for 600+
-  conversations. Embedding-indexed vector search is faster for very large
-  corpora (10M+ conversations per user, which doesn't exist yet).
-- **Conversational memory with summarization** — Zep specializes in
-  collapsing long conversations into structured memory. NDPA stores raw
-  conversation text and predicts at retrieval time.
+## Architecture Difference
 
-## When to use what
+NDPA Hosted Core is metadata-first. Postgres stores compact hot data:
+handles, previews, timestamps, top terms, scores, storage keys, and byte
+counts. Raw conversations and `.ndp` bundles live in blob/object/local storage
+and are fetched by Hydration only after top-K selection.
 
-| If you need...                                             | Use         |
-|------------------------------------------------------------|-------------|
-| Predict the next file the user will open                  | **NDPA**    |
-| Stage relevant past chats before the user asks            | **NDPA**    |
-| Cross-platform memory (multi-LLM)                         | **NDPA**    |
-| Semantic search on facts ("when did I mention X?")        | Mem0 / Zep  |
-| Long-term agent memory with reflection / summarization    | Letta       |
-| Per-user persistent facts inside ChatGPT                  | OpenAI Memory |
-| Per-user persistent facts inside Claude                   | Claude Memory |
+That means NDPA's default hosted path is not a full raw-text warehouse and does
+not require a materialized full-content GIN index. Self-hosters can experiment
+with full-text indexes, embeddings, or fact extraction, but those belong to
+their chosen Memory/Reasoning layer and should be measured under the matching
+metric.
 
-NDPA composes with the others. You can run NDPA for predictive staging
-**and** Mem0 for fact retrieval. They solve different problems.
+## What NDPA Is Good At
 
-## How the eval numbers compare
+- Predicting/staging context before the user asks, measured by PQHR.
+- Returning memory handles through compact metadata retrieval, measured by
+  LongMemEval and LoCoMo retrieval hit@K. Predict latency claims should refer
+  to staged/warm reads, not cold Supabase pooler misses.
+- Hydrating raw text from blob storage only after top-K selection.
+- Portable memory bundles via `.ndp`.
+- Optional E2E QA on top of retrieval when customers need answer generation.
 
-NDPA's published numbers (from `eval/`):
+## What NDPA Is Not Claiming
 
-| Eval                                           | Baseline | NDPA   | Lift  |
-|------------------------------------------------|----------|--------|-------|
-| File prediction hit@5 (122 samples, 13 sess.) | 31.1%    | 47.5%  | +16.4 |
-| Conversation continuity hit@5 (494 samples)    | 31.6%    | 85.2%  | +53.6 |
-| **Novel topic prediction hit@5 (480 samples)** | **17.9%** | **35.4%** | **+17.5** |
+- We do not claim NDPA Reasoning beats Mem0, OMEGA, ByteRover, or MemPalace
+  on full-stack QA.
+- We do not claim NDPA retrieval hit@K is directly comparable to competitor
+  full-stack QA accuracy.
+- We do not claim NDPA Hydration is a QA benchmark. It is measured on latency,
+  bandwidth, and storage cost.
+- We do not claim embeddings are always worse. Embeddings may help semantic
+  paraphrase recall; NDPA's core advantage is cost, portability, and
+  predict-forward staging.
 
-The "novel topic" eval is the strictest: predicting topics introduced in
-the *future* of a conversation that don't appear in its *history*. This is
-the closest analog to "predict context the user is about to need but
-hasn't asked for yet."
+## Current NDPA Numbers
 
-Mem0, Zep, and Letta publish their own benchmarks on their own tasks (fact
-recall, multi-session QA). They're solving different problems, so a direct
-benchmark on the same dataset hasn't been run. We welcome PRs that wire
-them into our eval harness.
+| Layer | Metric | Result | Notes |
+|---|---:|---:|---|
+| Predict | PQHR@5 | 85.9% | adaptive W=10 public LongMemEval-S; fixed W=7 multi-signal is 84.6% |
+| Memory | LongMemEval retrieval@5 | 90.6% | latest metadata-only run |
+| Memory | LoCoMo retrieval@5 | 85.1% | latest local metadata-only run |
+| Hydration | local-FS raw context fetch | 0.49ms p50 / 0.88ms p95 | local API smoke; not QA |
+| Reasoning | LongMemEval-S E2E LLM judge | 85.2% | current repaired full 500-row run; optional premium E2E layer |
+
+Older in-house file/conversation/novel-topic evals remain useful sanity
+checks for Predict, but PQHR is the public benchmark to cite first.
+
+## When To Use What
+
+| If you need... | Use |
+|---|---|
+| Stage relevant context before a query exists | NDPA Predict |
+| Get memory handles/previews for an explicit query | NDPA Memory |
+| Fetch raw full context for selected handles | NDPA Hydration |
+| Answers over retrieved memories | NDPA Reasoning or another QA layer |
+| Heavy semantic paraphrase search | Mem0/Zep/vector search, or an embedding add-on |
+| Agent reflection / summarization workflows | Letta/Zep-style systems |
+
+NDPA can compose with those systems. For example, use NDPA Predict for
+pre-staging and Mem0/Zep for fact extraction if that is the product shape.

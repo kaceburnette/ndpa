@@ -1,0 +1,44 @@
+# Fly.io config for the NDPA Predictions API.
+#
+# Deploy:
+#   cd /Users/kaceburnette/Desktop/ndp
+#   fly launch --copy-config --name ndpa-api --region iad --no-deploy
+#   fly secrets set DATABASE_URL='postgres://...'   # Supabase pooler URL
+#   fly deploy
+#
+# After deploy, set the SDK base URL:
+#   export NDPA_BASE_URL='https://ndpa-api.fly.dev'
+# (or pass `base_url=` to ndpa.Client)
+
+app = "ndpa-api"
+primary_region = "iad"   # change to closest to your users
+
+[build]
+  dockerfile = "server/Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1   # keep one warm to kill cold starts
+  processes = ["app"]
+
+[http_service.concurrency]
+  type = "requests"
+  hard_limit = 100
+  soft_limit = 50
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[checks]
+  [checks.health]
+    type = "http"
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"

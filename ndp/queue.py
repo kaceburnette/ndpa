@@ -119,7 +119,13 @@ def _flush_once(client) -> int:
         try:
             client.log_events(entry["session_id"], entry["events"])
             flushed += 1
-        except Exception:
+        except Exception as e:
+            message = str(e)
+            # Permanent client/schema/auth failures should not hammer a local
+            # dev server forever. The hook is best-effort dogfood telemetry;
+            # losing malformed rows is safer than retry storms.
+            if "NDPA API error 401" in message or "NDPA API error 422" in message:
+                continue
             failed_lines.append(line)
 
     # Rewrite file with only failed entries
@@ -144,8 +150,21 @@ def _flusher_main():
             print(f"[{time.strftime('%H:%M:%S')}] not configured, exiting", flush=True)
             return
         cfg = load_config()
+        base_url = cfg.get("api_base_url") or os.environ.get("NDPA_BASE_URL")
+        if not base_url:
+            print(
+                f"[{time.strftime('%H:%M:%S')}] api_base_url not configured, exiting",
+                flush=True,
+            )
+            return
         from ndpa import Client
-        client = Client(api_key=cfg["api_key"], platform="claude_code", async_send=False, timeout=5.0)
+        client = Client(
+            api_key=cfg["api_key"],
+            base_url=base_url,
+            platform="claude_code",
+            async_send=False,
+            timeout=5.0,
+        )
         print(f"[{time.strftime('%H:%M:%S')}] flusher started, pid={os.getpid()}", flush=True)
     except Exception as e:
         print(f"[{time.strftime('%H:%M:%S')}] init failed: {e}", flush=True)

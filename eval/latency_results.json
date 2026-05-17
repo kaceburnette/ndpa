@@ -1,0 +1,24 @@
+{
+  "measured_at": "2026-05-13T20:25:00-04:00",
+  "endpoint": "https://izackuempnhgoojtbgvi.supabase.co/functions/v1",
+  "deployment": "Supabase Edge Function (Deno V8 isolate)",
+  "honest_caveats": [
+    "Measured from a Mac in EDT against Supabase. User-to-region network latency varies.",
+    "Edge Function cold starts add ~200-400ms to first request after idle. We warm with 3 calls before measuring.",
+    "Postgres connections are not pooled; each request opens a new connection.",
+    "FastAPI rewrite in progress — target sub-150ms wall P50."
+  ],
+  "by_corpus_size": [
+    {"corpus_size": 50,   "wall_p50_ms": 906, "wall_p95_ms": 1125, "wall_p99_ms": 1339, "server_p50_ms": 292, "server_p95_ms": null},
+    {"corpus_size": 200,  "wall_p50_ms": 907, "wall_p95_ms": 1061, "wall_p99_ms": 1139, "server_p50_ms": 291, "server_p95_ms": null},
+    {"corpus_size": 500,  "wall_p50_ms": 956, "wall_p95_ms": 1120, "wall_p99_ms": 1283, "server_p50_ms": 299, "server_p95_ms": 333},
+    {"corpus_size": 1000, "wall_p50_ms": 929, "wall_p95_ms": 1108, "wall_p99_ms": 1240, "server_p50_ms": 311, "server_p95_ms": 351}
+  ],
+  "summary": {
+    "server_p50_ms": 300,
+    "wall_p50_ms": 930,
+    "network_and_edge_overhead_ms": 620
+  },
+  "interpretation": "Server P50 ~300ms is the Edge Function + Postgres roundtrip. Wall P50 ~930ms includes the network from user to Supabase and back. The kernel work itself (BoW + BM25 + GIN search) is ~50-100ms — the rest is deployment overhead. FastAPI on a persistent host with connection pooling should cut server P50 to ~50-80ms and wall P50 to ~100-150ms.",
+  "reproduce": "python3 -m eval.scaling_benchmark"
+}

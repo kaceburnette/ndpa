@@ -7,9 +7,24 @@ layer.** Transformers predict the next token. NDPA predicts the next *data* —
 the files, conversations, and context an AI assistant will need on its next
 turn — and stages it before the user asks.
 
+Predictive memory index for AI apps. Core returns handles/previews/scores;
+Hydration fetches raw context only when needed.
+
 This is not RAG. RAG retrieves on query (reactive). NDPA stages context
 proactively from behavioral signal: which files you've touched, what topics
 you've been discussing, what past sessions are about to become relevant.
+
+NDPA ships as four separable layers:
+
+| Layer | Responsibility | Metric |
+|---|---|---|
+| **Predict** | Pre-query staging from trajectory and behavioral signal | PQHR |
+| **Memory** | Explicit-query retrieval over hot metadata | LongMemEval / LoCoMo hit@K |
+| **Hydration** | Raw context fetch for selected handles | latency / bandwidth / storage efficiency |
+| **Reasoning** | Optional LLM answer layer over retrieved/hydrated context | LongMemEval E2E LLM judge |
+
+Those metrics are intentionally separate. Retrieval hit@K is not QA accuracy,
+and Hydration is not a QA benchmark.
 
 ## System diagram
 
@@ -42,11 +57,10 @@ you've been discussing, what past sessions are about to become relevant.
                        ┌─────────────────────┐
                        │  Supabase Postgres  │
                        │  + Row-Level Sec    │
-                       │  ndp_events         │
+                       │  ndp_sessions       │
                        │  ndp_conversations  │
-                       │  ndp_objects        │
                        │  ndp_api_keys       │
-                       │  ndp_rate_limits    │
+                       │  ndp_usage_events   │
                        └──────────┬──────────┘
                                   │
                                   ▼
@@ -86,80 +100,108 @@ Pure-Python scoring engine. Four features, weighted sum:
 | `extension_affinity` | 0.20   | Test/spec/type pairings (foo.ts↔foo.test.ts) |
 | `import_proximity`   | 0.20   | Files imported by currently-hot files  |
 
-No GPU. No LLM. No model weights to load. <100ms per `predict()` call.
+Embeddings are not required. No LLM or model weights are loaded in the core
+scoring path.
 
-### Ingestion API (`Edge function: events`)
+### Ingestion API (`POST /events`)
 
-`POST /v1/events` — bearer-auth, rate-limited (600 req/min/key), max 1000
-events per call, max 2MB body. Writes to `ndp_events`, upserts session row,
-appends to `ndp_conversations`.
+Bearer-auth, rate-limited (600 req/min/key), max 1000 events per call. Accepts
+raw text, writes it to the configured Hydration store, upserts session metadata,
+and stores compact conversation metadata in Postgres.
 
-### Predictions API (`Edge function: predictions`)
+### Predictions API (`POST /predictions`)
 
 `POST /v1/predictions` — bearer-auth. Two modes:
 
-1. **Query mode** (`session_id=""`, `query=text`): pure topic match (cosine
-   on bag-of-words) across all past conversations. Returns top-K.
-2. **Live mode** (`session_id=<active>`): blends topic match (0.7) + recency
-   decay (0.3, exponential, 180-day half-life).
+1. **Query mode** (`session_id=""`, `query=text`): ranks hot metadata by
+   compact terms, preview overlap, entities, dates, and recency.
+2. **Live mode** (`session_id=<active>`): builds a trajectory query from recent
+   previews and predicts relevant memory handles.
+
+### Hydration API (`POST /hydrate`)
+
+Fetches raw context from local/blob storage by `storage_key` or memory handle
+after Predict or Memory has selected a small top-K candidate set.
 
 ### Storage schema
 
 ```sql
-ndp_events           -- every tool use + prompt, partitioned by user
 ndp_sessions         -- one row per session, turn count, platform
-ndp_conversations    -- concatenated conversation text per session
-ndp_objects          -- file refs, tiers (hot/warm/cold), scores
+ndp_conversations    -- hot metadata, previews, handles, storage keys
 ndp_api_keys         -- SHA-256 hash + user binding
-ndp_rate_limits      -- per-key, per-minute, per-endpoint counters
+ndp_usage_events     -- per-product usage telemetry
 ```
 
 All tables have **Row-Level Security** enabled. Service role bypasses RLS;
 users never query directly.
 
+### Hosted metadata-first storage
+
+Core architecture works. Hosted Core treats Postgres as the compact hot tier,
+not the raw archive.
+The default query path should fit in small rows:
+
+| Field | Purpose |
+|---|---|
+| `session_id` / `memory_handle` | stable handle returned by Predict and Memory |
+| `updated_at`, `platform`, `end_user_id` | tenant filtering and temporal scoring |
+| `top_terms` | compact lexical index for candidate selection |
+| `content_preview` | short preview for ranking and prompt hints |
+| `storage_key` | pointer for Hydration |
+| `content_bytes` | storage accounting and hydration budgeting |
+
+Raw conversations, file contents, and `.ndp` bundles belong in blob/object/local
+storage. Hydration fetches raw content by `storage_key` only after Predict or
+Memory has selected a small top-K candidate set. Full-content `tsv_content` and
+full raw-text GIN indexes are optional self-host experiments, not the hosted
+default path.
+
 ## Latency budget
 
-| Stage             | Target  | Actual |
-|-------------------|---------|--------|
-| Hook write        | <50ms   | 44ms   |
-| Queue → API flush | <500ms  | ~300ms (background) |
-| Predictions API   | <2s     | 1.2s for 600 conversations |
-| Health check      | <300ms  | 174ms  |
+Current local FastAPI -> Supabase pooler cold prediction smoke is around
+~700ms until the latency work improves it. Do not make low-latency hosted
+claims yet. Predict latency should be reported as staged/warm latency; cold
+Supabase pooler misses are fallback cost, not the hot-path claim.
+
+| Stage | Current claim |
+|---|---|
+| Core architecture | works; returns handles/previews/scores |
+| Predict staged/warm read | cache-hit latency after staging |
+| Local FastAPI -> Supabase pooler cold miss | ~700ms smoke |
+| Hydration | local-FS implemented; latency/storage benchmark pending |
 
 ## Privacy model
 
-| Data                          | Stored locally | Stored remote | Opt-in to upload |
-|-------------------------------|----------------|---------------|------------------|
-| File paths                    | yes            | yes           | no (always sent) |
-| Behavioral signal (counts/ts) | yes            | yes           | no (always sent) |
-| Conversation text             | yes            | yes           | no (always sent) |
-| **File contents**             | yes            | **no**        | **yes** (config)|
+| Data                          | Stored locally/blob | Stored in Postgres |
+|-------------------------------|---------------------|--------------------|
+| File paths / behavioral signal| yes                 | compact metadata   |
+| Conversation text             | yes                 | preview + terms only |
+| File contents / raw bundles   | yes                 | storage pointer only |
 
-File contents are read locally for context staging but **never uploaded by
-default**. Set `upload_file_contents: true` in `~/.ndp/config.json` to
-opt in.
+Raw memory is hydrated by key only after Core selects relevant handles.
 
 ## Scaling characteristics
 
-- **Per-user**: ~5KB/session in `ndp_events`, ~20KB/session in
-  `ndp_conversations`. 1M sessions = ~25GB.
-- **Predictions API**: O(N) over past conversations per request. BoW cosine,
-  no embeddings, no vector index. Bottleneck is row fetch, not compute.
+- **Per-user**: compact metadata rows in `ndp_sessions` and
+  `ndp_conversations`; raw context is outside Postgres.
+- **Predictions API**: candidate search over compact metadata. Embeddings are
+  not required, and there is no LLM or full raw-text index in the hosted hot
+  path.
 - **For 100M users**: shard by `user_id` (already partitioned in schema),
   add Postgres read replicas for predictions reads. Edge functions scale
   horizontally.
 
-## Why no embeddings?
+## Why embeddings are not required
 
 Embeddings work for retrieval. NDPA does prediction. The signal is *behavioral*
 (what you touched, when, in what sequence), not *semantic* (what the words
 mean). A BoW tokenizer + cosine catches enough of the topic signal to drive
 the recency/frequency/affinity features, and runs in 5ms.
 
-Embeddings would add cost (GPU inference) and latency (vector DB hop) for
-marginal gains on a problem where the behavioral signal is the primary
-predictor. We can add them later as an optional feature for platforms that
-already pay the embedding cost.
+Embeddings can be useful for semantic retrieval, but they are not required for
+NDPA Core. They add cost and latency when the primary Predict signal is
+behavioral. They can remain an optional add-on for platforms that already pay
+the embedding cost.
 
 ## Why a separate prediction layer (not in-model)?
 

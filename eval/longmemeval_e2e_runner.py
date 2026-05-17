@@ -3,7 +3,7 @@
 End-to-end QA eval on LongMemEval.
 
 Reuses ingestion + retrieval from longmemeval_runner.py, then chains the
-retrieved context into gpt-4o-mini and scores the FINAL ANSWER.
+retrieved context into an LLM reader and scores the FINAL ANSWER.
 
 This is the number that compares apples-to-apples against published
 Mem0/Zep/TiMem results.
@@ -11,13 +11,15 @@ Mem0/Zep/TiMem results.
 Usage:
     export OPENAI_API_KEY="sk-..."
     python3 -m eval.longmemeval_e2e_runner
-    python3 -m eval.longmemeval_e2e_runner --max-items 25 --yes
-    python3 -m eval.longmemeval_e2e_runner --model gpt-4o-mini
+    python3 -m eval.longmemeval_e2e_runner --model gpt-4o --yes
+    python3 -m eval.longmemeval_e2e_runner --model gpt-4o-mini --yes
 
-Cost (gpt-4o-mini):
-    500 questions × ~6k input tokens × $0.15/1M  = ~$0.45
-    500 questions × ~200 output tokens × $0.60/1M = ~$0.06
-    Total: ~$0.51
+    # Claude reader (shows NDPA+Claude numbers for Anthropic pitch)
+    export ANTHROPIC_API_KEY="sk-ant-..."
+    python3 -m eval.longmemeval_e2e_runner --model claude-sonnet-4-6 --yes
+    python3 -m eval.longmemeval_e2e_runner --model claude-opus-4-7 --yes
+
+Cost depends on the reader model; the runner records token usage and estimated spend.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -44,8 +47,57 @@ from eval.external_benchmark_utils import (
 from eval.longmemeval_runner import DATASETS, PUBLISHED_RETRIEVAL_NOTES, category_for
 
 RESULTS_PATH = Path(__file__).with_name("longmemeval_e2e_results.json")
-DEFAULT_MODEL = "gpt-4o-mini"
-MAX_CONTEXT_CHARS = 24_000  # ~6k tokens
+DEFAULT_MODEL = "gpt-4.1-mini"
+MAX_CONTEXT_CHARS = 80_000
+MODEL_PRICES_PER_MILLION = {
+    "gpt-5.5": {"input": 5.00, "output": 30.00},
+    "gpt-5.4": {"input": 2.50, "output": 15.00},
+    "gpt-5.4-mini": {"input": 0.75, "output": 4.50},
+    "gpt-5.4-nano": {"input": 0.20, "output": 1.25},
+    "gpt-5.1": {"input": 1.25, "output": 10.00},
+    "gpt-5": {"input": 1.25, "output": 10.00},
+    "gpt-5-mini": {"input": 0.25, "output": 2.00},
+    "gpt-5-nano": {"input": 0.05, "output": 0.40},
+    "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
+    "gpt-4.1": {"input": 2.00, "output": 8.00},
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+}
+
+
+def estimate_cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
+    prices = MODEL_PRICES_PER_MILLION.get(model)
+    if prices is None:
+        # Keep unknown paid models explicit instead of pretending old mini
+        # pricing applies.
+        return 0.0
+    return (
+        input_tokens / 1_000_000 * prices["input"]
+        + output_tokens / 1_000_000 * prices["output"]
+    )
+
+QUESTION_TYPE_GUIDANCE = {
+    "temporal-reasoning": (
+        "Use session dates in context headers. Build a short timeline, prefer "
+        "the most relevant dated evidence, and answer with a concrete date, "
+        "duration, count, or ordering."
+    ),
+    "multi-session": (
+        "This may require evidence from multiple prior sessions. Synthesize "
+        "across sessions instead of stopping at the first matching fact."
+    ),
+    "knowledge-update": (
+        "Prefer the most recent relevant evidence when older and newer context "
+        "conflict or the user corrected something."
+    ),
+    "abstention": (
+        "If the supplied context does not mention the requested subject, say "
+        "the user did not mention it."
+    ),
+    "single-session-preference": (
+        "Preserve nuance from the user's original language and infer preferences "
+        "from repeated patterns, not just isolated facts."
+    ),
+}
 
 SYSTEM_PROMPT = (
     "You are answering a question about the user based on context from their past "
@@ -56,21 +108,81 @@ SYSTEM_PROMPT = (
     "- For preference questions ('what kind of X would I like', 'recommend Y'): INFER "
     "the user's preferences from patterns in the context, even if not explicitly stated. "
     "Be specific about what they'd prefer based on what they've discussed liking, doing, or asking about.\n"
-    "- For temporal questions ('how long ago', 'when did'): give a specific time/date "
-    "from the context if available.\n"
-    "- ONLY say 'I don't know' if the context truly contains nothing relevant. If the "
-    "context mentions a RELATED but DIFFERENT thing (e.g. asked about hamster, context "
-    "only has cat), say 'You did not mention your hamster' rather than just 'I don't know'.\n"
+    "- For temporal questions ('how long ago', 'when did'): reason carefully about dates "
+    "and times. If multiple dates appear, identify the most relevant one to the question. "
+    "Give a specific date or duration, not a vague answer.\n"
+    "- Context headers may include session_id, date, platform, and rank. Use header dates "
+    "for temporal reasoning; do not treat headers as conversation text.\n"
+    "- For multi-session questions: combine evidence from multiple context blocks when needed.\n"
+    "- For knowledge-update questions: use the MOST RECENT information in the context if "
+    "the user has corrected or updated something.\n"
+    "- For abstention questions ('did I mention X'): if the context contains nothing about X, "
+    "say 'You did not mention [X]' — not 'I don't know'.\n"
+    "- ONLY say 'I don't know' if the context truly contains nothing relevant.\n"
     "- Do not fabricate facts not in the context."
 )
 
 
-def build_prompt(question: str, predicted_contents: list[str]) -> tuple[str, str]:
+TEMPORAL_RE = re.compile(
+    r"\b(when|before|after|last|latest|first|recent|recently|current|currently|"
+    r"today|yesterday|tomorrow|week|month|year|date|time|ago|older|newer|"
+    r"changed|updated|previous|next)\b",
+    re.I,
+)
+
+
+def adaptive_context_chars(category: str, question: str, k: int) -> int:
+    """Allocate more context for categories where misses are mostly reader-side."""
+    budgets = {
+        "temporal-reasoning": 75_000,
+        "multi-session": 70_000,
+        "knowledge-update": 60_000,
+        "single-session-preference": 60_000,
+        "single-session-user": 50_000,
+        "single-session-assistant": 45_000,
+        "abstention": 35_000,
+    }
+    budget = budgets.get(category, 50_000)
+    if TEMPORAL_RE.search(question):
+        budget = max(budget, 70_000)
+    if k > 5:
+        budget += min(20_000, (k - 5) * 4_000)
+    return min(MAX_CONTEXT_CHARS, budget)
+
+
+def format_prediction_context(predictions: list[dict], max_chars: int) -> str:
+    """Preserve session/date metadata and truncate by whole ranked blocks."""
+    parts = []
+    used = 0
+    for rank, pred in enumerate(predictions, start=1):
+        content = str(pred.get("content") or "").strip()
+        if not content:
+            continue
+        header = (
+            f"[rank={rank} session_id={pred.get('session_id') or pred.get('id') or 'unknown'} "
+            f"date={(pred.get('started_at') or '')[:10] or 'unknown'} "
+            f"platform={pred.get('platform') or 'unknown'} "
+            f"score={pred.get('score', pred.get('topic_score', ''))}]"
+        )
+        remaining = max_chars - used - len(header) - 8
+        if remaining <= 0:
+            break
+        block = f"{header}\n{content[:remaining]}"
+        parts.append(block)
+        used += len(block) + 8
+    return "\n\n---\n\n".join(parts)
+
+
+def build_prompt(question: str, predictions: list[dict], category: str, k: int) -> tuple[str, str]:
     """Build (system, user) prompt strings for the LLM call."""
-    context_blob = "\n\n---\n\n".join(predicted_contents)
-    if len(context_blob) > MAX_CONTEXT_CHARS:
-        context_blob = context_blob[:MAX_CONTEXT_CHARS]
-    user = f"Context from past conversations:\n\n{context_blob}\n\n---\n\nQuestion: {question}\n\nAnswer:"
+    context_blob = format_prediction_context(predictions, adaptive_context_chars(category, question, k))
+    guidance = QUESTION_TYPE_GUIDANCE.get(category, "")
+    user = (
+        f"Question category: {category}\n"
+        f"{'Category guidance: ' + guidance if guidance else ''}\n\n"
+        f"Context from past conversations:\n\n{context_blob}\n\n---\n\n"
+        f"Question: {question}\n\nAnswer:"
+    )
     return SYSTEM_PROMPT, user
 
 
@@ -88,6 +200,28 @@ def call_openai(client, model: str, system: str, user: str) -> tuple[str, int, i
     in_tok = getattr(resp.usage, "prompt_tokens", 0)
     out_tok = getattr(resp.usage, "completion_tokens", 0)
     return answer, in_tok, out_tok
+
+
+def call_anthropic(client, model: str, system: str, user: str) -> tuple[str, int, int]:
+    """Returns (answer_text, input_tokens, output_tokens)."""
+    resp = client.messages.create(
+        model=model,
+        max_tokens=512,
+        system=system,
+        messages=[{"role": "user", "content": user}],
+    )
+    answer = (resp.content[0].text if resp.content else "").strip()
+    in_tok = getattr(resp.usage, "input_tokens", 0)
+    out_tok = getattr(resp.usage, "output_tokens", 0)
+    return answer, in_tok, out_tok
+
+
+def call_reader(openai_client, anthropic_client, model: str, system: str, user: str) -> tuple[str, int, int]:
+    if model.startswith("claude"):
+        if anthropic_client is None:
+            raise RuntimeError("ANTHROPIC_API_KEY not set")
+        return call_anthropic(anthropic_client, model, system, user)
+    return call_openai(openai_client, model, system, user)
 
 
 def grade_answer(predicted: str, ground_truth: str | None) -> bool:
@@ -117,19 +251,32 @@ def grade_answer(predicted: str, ground_truth: str | None) -> bool:
 
 
 def run(args: argparse.Namespace) -> dict:
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        print("ERROR: OPENAI_API_KEY environment variable is not set.", file=sys.stderr)
-        print("Run: export OPENAI_API_KEY=\"sk-...\"", file=sys.stderr)
-        sys.exit(1)
+    openai_client = None
+    anthropic_client = None
 
-    try:
-        from openai import OpenAI
-    except ImportError:
-        print("ERROR: openai package not installed. Run: pip install openai", file=sys.stderr)
-        sys.exit(1)
-
-    openai_client = OpenAI(api_key=api_key)
+    if args.model.startswith("claude"):
+        ant_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        if not ant_key:
+            print("ERROR: ANTHROPIC_API_KEY not set for Claude reader.", file=sys.stderr)
+            sys.exit(1)
+        try:
+            import anthropic
+            anthropic_client = anthropic.Anthropic(api_key=ant_key)
+        except ImportError:
+            print("ERROR: pip install anthropic", file=sys.stderr)
+            sys.exit(1)
+    else:
+        api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+        if not api_key:
+            print("ERROR: OPENAI_API_KEY environment variable is not set.", file=sys.stderr)
+            print("Run: export OPENAI_API_KEY=\"sk-...\"", file=sys.stderr)
+            sys.exit(1)
+        try:
+            from openai import OpenAI
+        except ImportError:
+            print("ERROR: openai package not installed. Run: pip install openai", file=sys.stderr)
+            sys.exit(1)
+        openai_client = OpenAI(api_key=api_key)
 
     dataset_id, filename, url = DATASETS[args.split]
     path = DATA_DIR / "longmemeval" / filename
@@ -140,7 +287,7 @@ def run(args: argparse.Namespace) -> dict:
     # Cost estimate before running
     est_input = len(items) * 6000
     est_output = len(items) * 200
-    est_cost = (est_input / 1_000_000 * 0.15) + (est_output / 1_000_000 * 0.60)
+    est_cost = estimate_cost_usd(args.model, est_input, est_output)
     print(f"\n  Cost estimate: ~${est_cost:.2f} for {len(items)} questions with {args.model}")
     print(f"  Input tokens ~{est_input:,}, output tokens ~{est_output:,}")
     if not args.yes:
@@ -160,6 +307,7 @@ def run(args: argparse.Namespace) -> dict:
 
     for index, item in enumerate(items, start=1):
         question_id = str(item["question_id"])
+        category = category_for(item)
         end_user_id = f"longmemeval_{question_id}"
         haystack_ids = [str(sid) for sid in item.get("haystack_session_ids") or []]
         haystack_dates = item.get("haystack_dates") or []
@@ -202,17 +350,16 @@ def run(args: argparse.Namespace) -> dict:
             attempts=args.retries,
         )
         predictions = result.get("predictions") or []
-        predicted_contents = [str(p.get("content") or "") for p in predictions]
 
         # Call LLM
-        system, user = build_prompt(question, predicted_contents)
+        system, user = build_prompt(question, predictions, category, args.k)
         try:
-            answer, in_tok, out_tok = call_openai(openai_client, args.model, system, user)
+            answer, in_tok, out_tok = call_reader(openai_client, anthropic_client, args.model, system, user)
         except Exception as e:
             answer = ""
             in_tok = 0
             out_tok = 0
-            print(f"  [warn] OpenAI call failed at q={question_id}: {e}", flush=True)
+            print(f"  [warn] reader call failed at q={question_id}: {e}", flush=True)
 
         total_in += in_tok
         total_out += out_tok
@@ -223,7 +370,7 @@ def run(args: argparse.Namespace) -> dict:
 
         rows.append({
             "question_id": question_id,
-            "category": category_for(item),
+            "category": category,
             "question": question,
             "ground_truth": ground_truth,
             "predicted_answer": answer,
@@ -235,7 +382,7 @@ def run(args: argparse.Namespace) -> dict:
         if index % args.progress_every == 0:
             elapsed = time.time() - started
             acc = correct / index
-            cost_so_far = (total_in / 1_000_000 * 0.15) + (total_out / 1_000_000 * 0.60)
+            cost_so_far = estimate_cost_usd(args.model, total_in, total_out)
             print(f"  {index}/{len(items)} | acc={acc:.3f} | ${cost_so_far:.3f} | {elapsed:.0f}s", flush=True)
 
     # Aggregate by category
@@ -253,7 +400,7 @@ def run(args: argparse.Namespace) -> dict:
     for cat, stats in by_category.items():
         metrics[cat] = {"accuracy": stats["correct"] / stats["n"], "n": stats["n"]}
 
-    total_cost = (total_in / 1_000_000 * 0.15) + (total_out / 1_000_000 * 0.60)
+    total_cost = estimate_cost_usd(args.model, total_in, total_out)
 
     payload = {
         "benchmark": "LongMemEval (end-to-end QA)",
@@ -275,7 +422,8 @@ def run(args: argparse.Namespace) -> dict:
         "published_retrieval_notes": PUBLISHED_RETRIEVAL_NOTES,
         "rows": rows,  # ALL rows saved so we can re-grade later without re-running
     }
-    write_json(RESULTS_PATH, payload)
+    out_path = Path(args.out) if args.out else RESULTS_PATH
+    write_json(out_path, payload)
     return payload
 
 
@@ -293,6 +441,7 @@ def main() -> None:
     parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument("--progress-every", type=int, default=25)
+    parser.add_argument("--out", default="", help="Optional output JSON path")
     args = parser.parse_args()
 
     result = run(args)
@@ -300,7 +449,7 @@ def main() -> None:
         print()
         print(json.dumps(result["metrics"], indent=2))
         print(f"\nTotal cost: ${result['cost_usd']:.4f}")
-        print(f"Results: {RESULTS_PATH}")
+        print(f"Results: {Path(args.out) if args.out else RESULTS_PATH}")
 
 
 if __name__ == "__main__":

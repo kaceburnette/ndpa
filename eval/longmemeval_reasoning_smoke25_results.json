@@ -1,0 +1,873 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "76.0% string-overlap"
+  },
+  "cost_usd": 0.0266,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 53.42,
+  "metrics": {
+    "overall": {
+      "accuracy": 0.76,
+      "n": 25
+    },
+    "single-session-user": {
+      "accuracy": 0.76,
+      "n": 25
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 25,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user graduated with a degree in Business Administration. (session_id=answer_280352e9, 2023/05/30)",
+      "ground_truth": "Business Administration",
+      "predicted_answer": "You graduated with a degree in Business Administration.",
+      "predicted_session_ids": [
+        "answer_280352e9",
+        "02bd2b90_3"
+      ],
+      "question": "What degree did I graduate with?",
+      "question_id": "e47becba",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 326,
+        "extraction_out": 30,
+        "reader_in": 237,
+        "reader_out": 9
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user's daily commute to work takes 45 minutes each way. (session_id=answer_40a90d51, date=2023/05/22)",
+      "ground_truth": "45 minutes each way",
+      "predicted_answer": "Your daily commute to work is 45 minutes each way.",
+      "predicted_session_ids": [
+        "answer_40a90d51",
+        "db73b7e4_4",
+        "ultrachat_392094",
+        "afe04238_1",
+        "ultrachat_498215",
+        "628c958c_7",
+        "ultrachat_246088",
+        "5dce60dd",
+        "sharegpt_6poO9nA_41",
+        "0afa904a",
+        "ultrachat_577747",
+        "5209e813_2",
+        "ultrachat_387144",
+        "b5f561f5_2",
+        "ultrachat_311002",
+        "65698aa9_4",
+        "sharegpt_5V5H2HN_0",
+        "79f74d4e_1",
+        "7d8b5834_1",
+        "1f88b2b3"
+      ],
+      "question": "How long is my daily commute to work?",
+      "question_id": "118b2229",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 3443,
+        "extraction_out": 35,
+        "reader_in": 244,
+        "reader_out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- The user redeemed a $5 coupon on coffee creamer last Sunday. (session_id=answer_d61669c7, date=2023/05/29)",
+      "ground_truth": "Target",
+      "predicted_answer": "You did not mention where you redeemed the $5 coupon on coffee creamer.",
+      "predicted_session_ids": [
+        "answer_d61669c7",
+        "5c44d9fe_1",
+        "07ba9acd_2"
+      ],
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "question_id": "51a45a95",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 617,
+        "extraction_out": 35,
+        "reader_in": 248,
+        "reader_out": 16
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- The user recently went to a play at the local community theater and was impressed by the lead actress's performance. (session_id=answer_355c48bb, date=2023/05/26)\n- The lead actress reminded the user of their friend Emily, who is an aspiring actress. (session_id=answer_355c48bb, date=2023/05/26)\n- No specific name or title of the play attended at the local community theater was mentioned.",
+      "ground_truth": "The Glass Menagerie",
+      "predicted_answer": "You did not mention the name or title of the play you attended at the local community theater.",
+      "predicted_session_ids": [
+        "answer_355c48bb",
+        "sharegpt_gmLF3PE_17",
+        "ultrachat_304942",
+        "1587bd78_1",
+        "ultrachat_268434",
+        "ultrachat_132201",
+        "ultrachat_365156",
+        "sharegpt_LG0uJvY_0",
+        "sharegpt_DGiqvVv_270",
+        "sharegpt_9qAGH5s_0",
+        "sharegpt_M84blrA_53",
+        "sharegpt_PancT1q_0",
+        "07b7a667_1",
+        "07b7a667_1",
+        "7e17ae56_5",
+        "ultrachat_71618",
+        "80082060_2",
+        "ultrachat_366731",
+        "ultrachat_221066",
+        "5b83c26e_1"
+      ],
+      "question": "What play did I attend at the local community theater?",
+      "question_id": "58bf7951",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2915,
+        "extraction_out": 99,
+        "reader_in": 310,
+        "reader_out": 19
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The name of the playlist you created on Spotify is \"Summer Vibes.\" (session_id=answer_3e012175, date=2023/05/21)",
+      "ground_truth": "Summer Vibes",
+      "predicted_answer": "The name of the playlist you created on Spotify is \"Summer Vibes.\"",
+      "predicted_session_ids": [
+        "answer_3e012175",
+        "01bd9def",
+        "ultrachat_266656",
+        "7b1d1f43_1",
+        "sharegpt_bph7DTk_7",
+        "8020d945_2",
+        "ultrachat_271928",
+        "e132259f",
+        "4d0d7984"
+      ],
+      "question": "What is the name of the playlist I created on Spotify?",
+      "question_id": "1e043500",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1226,
+        "extraction_out": 36,
+        "reader_in": 248,
+        "reader_out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user's old last name was Johnson before they changed it to Winters. (session_id=answer_f6168136, date=2023/05/28)",
+      "ground_truth": "Johnson",
+      "predicted_answer": "Your last name before you changed it was Johnson.",
+      "predicted_session_ids": [
+        "answer_f6168136",
+        "aaf71ce2_2",
+        "64767b7f",
+        "f58317c6",
+        "sharegpt_WPGrlAK_0",
+        "193c23bd_2",
+        "sharegpt_EXJAjmw_0",
+        "89b1028d_1",
+        "e4881cbd_4"
+      ],
+      "question": "What was my last name before I changed it?",
+      "question_id": "c5e8278d",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1313,
+        "extraction_out": 34,
+        "reader_in": 244,
+        "reader_out": 10
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- YogaGlo offers yoga classes for all levels, focusing on vinyasa flow, hatha, and restorative yoga. (session_id=answer_9398da02, 2023/05/30)\n- Peloton Digital provides a vast yoga library with classes ranging from beginner to advanced. (session_id=answer_9398da02, 2023/05/30)\n- Yoga Studio is a comprehensive app with classes, tutorials, and customizable practices. (session_id=answer_9398da02, 2023/05/30)\n- Asana Rebel focuses on vinyasa flow and hatha yoga, with classes ranging from 10 to 60 minutes. (session_id=answer_9398da02, 2023/05/30)\n- Calm app, primarily for meditation, also features yoga classes and sleep stories. (session_id=answer_9398da02, 2023/05/30)\n- Dylan Werner Yoga app offers dynamic, challenging flows and a variety of classes. (session_id=answer_9398da02, 2023/05/30)\n- Yoga With Adriene is a free app with a variety of classes including vinyasa flow, hatha, and restorative yoga. (session_id=answer_9398da02, 2023/05/30)",
+      "ground_truth": "Serenity Yoga",
+      "predicted_answer": "You can take yoga classes on YogaGlo, Peloton Digital, Yoga Studio, Asana Rebel, Calm app, Dylan Werner Yoga app, and Yoga With Adriene.",
+      "predicted_session_ids": [
+        "answer_9398da02",
+        "ultrachat_270925",
+        "ultrachat_393203",
+        "ultrachat_84599",
+        "28621d6a_2",
+        "ec8fa65d_2",
+        "910ed479_3",
+        "sharegpt_2o1zvbh_11",
+        "a200b713_4",
+        "ultrachat_462",
+        "ultrachat_59767",
+        "1ddc89e9_3",
+        "ultrachat_112120",
+        "5df2f487",
+        "de5634fc_2",
+        "sharegpt_Ke2HP8U_31",
+        "f2209dd0",
+        "e49a0b52_1",
+        "ultrachat_217527",
+        "7c5ab02a_2"
+      ],
+      "question": "Where do I take yoga classes?",
+      "question_id": "6ade9755",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2930,
+        "extraction_out": 276,
+        "reader_in": 483,
+        "reader_out": 35
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user repainted their bedroom walls a lighter shade of gray. (session_id=answer_feb5200f, 2023/05/27)",
+      "ground_truth": "a lighter shade of gray",
+      "predicted_answer": "You repainted your bedroom walls a lighter shade of gray.",
+      "predicted_session_ids": [
+        "answer_feb5200f",
+        "a79f1a04_1"
+      ],
+      "question": "What color did I repaint my bedroom walls?",
+      "question_id": "6f9b354f",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 566,
+        "extraction_out": 33,
+        "reader_in": 242,
+        "reader_out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- The user volunteered at the \"Love is in the Air\" fundraising dinner on Valentine's Day, which is in February. (session_id=answer_59547700, date=2023/04/02)",
+      "ground_truth": "February 14th",
+      "predicted_answer": "You volunteered at the \"Love is in the Air\" fundraising dinner on Valentine's Day in February.",
+      "predicted_session_ids": [
+        "answer_59547700",
+        "ultrachat_5212",
+        "e6ab6a7b_2",
+        "13f3da23_3",
+        "ultrachat_477344",
+        "e82ce7cd_1",
+        "403ee298_1",
+        "sharegpt_eHZgwR0_9",
+        "ultrachat_246324",
+        "sharegpt_m0NmfPN_0",
+        "ultrachat_13835",
+        "ultrachat_151027",
+        "ultrachat_243813",
+        "ultrachat_152126",
+        "sharegpt_RFw4j0W_0",
+        "eb0d8dc1_6",
+        "ed9482a2_2",
+        "ultrachat_485646"
+      ],
+      "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+      "question_id": "58ef2f1c",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2873,
+        "extraction_out": 43,
+        "reader_in": 256,
+        "reader_out": 19
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user bought their new tennis racket from a sports store downtown. (session_id=answer_c3567066, date=2023/05/25)",
+      "ground_truth": "the sports store downtown",
+      "predicted_answer": "You bought your new tennis racket from a sports store downtown.",
+      "predicted_session_ids": [
+        "answer_c3567066",
+        "15232887_1",
+        "68ace657_1",
+        "54e9197a",
+        "sharegpt_TKj3yO8_0",
+        "91880423",
+        "46575f0d",
+        "ultrachat_94045",
+        "sharegpt_3ukpUDt_0",
+        "84a93262",
+        "ultrachat_360085",
+        "sharegpt_JSljtOI_0",
+        "1ede478b",
+        "ultrachat_451692",
+        "3b5205b6_1",
+        "629f17b4_1",
+        "3a667084_2",
+        "sharegpt_zq7r8FP_7",
+        "eccc6e84_2",
+        "0a6bf5e4_2"
+      ],
+      "question": "Where did I buy my new tennis racket from?",
+      "question_id": "f8c5f88b",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 3908,
+        "extraction_out": 33,
+        "reader_in": 243,
+        "reader_out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user was a marketing specialist at a small startup. (session_id=answer_235eb6fb, date=2023/05/24)",
+      "ground_truth": "Marketing specialist at a small startup",
+      "predicted_answer": "You were a marketing specialist at a small startup.",
+      "predicted_session_ids": [
+        "sharegpt_ipLglky_48",
+        "sharegpt_8zsFRKh_0",
+        "answer_235eb6fb",
+        "e93efd9a_1"
+      ],
+      "question": "What was my previous occupation?",
+      "question_id": "5d3d2817",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 656,
+        "extraction_out": 32,
+        "reader_in": 238,
+        "reader_out": 10
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user spent $800 on a designer handbag. (session_id=answer_7cb94507, date=2023/05/23)",
+      "ground_truth": "$800",
+      "predicted_answer": "You spent $800 on a designer handbag.",
+      "predicted_session_ids": [
+        "answer_7cb94507",
+        "sharegpt_cRrfdsc_0",
+        "864a563d_3",
+        "sharegpt_rraH1Q7_0",
+        "fb2368b8_3",
+        "44bbd8cd_2",
+        "60147f90_1",
+        "ultrachat_136979",
+        "d81d9846",
+        "sharegpt_ToxFax1_535"
+      ],
+      "question": "How much did I spend on a designer handbag?",
+      "question_id": "7527f7e2",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1326,
+        "extraction_out": 31,
+        "reader_in": 241,
+        "reader_out": 9
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- You have 20 playlists on Spotify already. (session_id=answer_e05e4612, date=2023/05/20)",
+      "ground_truth": "20",
+      "predicted_answer": "You have 20 playlists on Spotify.",
+      "predicted_session_ids": [
+        "answer_e05e4612",
+        "89d3053f",
+        "sharegpt_9iUZNsL_0",
+        "ultrachat_129096",
+        "ultrachat_36718",
+        "ultrachat_109577",
+        "b76006cb_3",
+        "47db3b56_1",
+        "f01feb31",
+        "793ff37a",
+        "f7ffddbc",
+        "ultrachat_228940",
+        "fb5dd87f_1",
+        "ultrachat_198948",
+        "sharegpt_Get1wF2_0",
+        "sharegpt_ErOTMZ3_59",
+        "sharegpt_CdnyHep_0",
+        "52381716_1",
+        "sharegpt_e328KPR_0",
+        "2b6a88cc_2"
+      ],
+      "question": "How many playlists do I have on Spotify?",
+      "question_id": "c960da58",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2997,
+        "extraction_out": 30,
+        "reader_in": 239,
+        "reader_out": 8
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user attended the University of Melbourne for their study abroad program. (session_id=answer_94030872, date=2023/05/23)",
+      "ground_truth": "University of Melbourne in Australia",
+      "predicted_answer": "You attended the University of Melbourne for your study abroad program.",
+      "predicted_session_ids": [
+        "answer_94030872",
+        "sharegpt_kpnwrGe_12",
+        "f5f4b6f6_2",
+        "6d3f5c68_4",
+        "ultrachat_475284",
+        "ultrachat_294369",
+        "ultrachat_117806",
+        "ultrachat_64326"
+      ],
+      "question": "Where did I attend for my study abroad program?",
+      "question_id": "3b6f954b",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1005,
+        "extraction_out": 33,
+        "reader_in": 243,
+        "reader_out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- You got a 10% discount on your first purchase from the new clothing brand last month. (session_id=answer_f38f679b, date=2023/05/23)\n- The discount amount was $8, assuming 10% off an $80 purchase. (session_id=cdd9704d_1, date=2023/05/29)",
+      "ground_truth": "10%",
+      "predicted_answer": "You got a 10% discount, which was $8, on your first purchase from the new clothing brand.",
+      "predicted_session_ids": [
+        "741c6781_1",
+        "answer_f38f679b",
+        "082889ba_1",
+        "cdd9704d_1",
+        "7e4dab66_1",
+        "6ef99651_2",
+        "sharegpt_ZRxgLAw_0",
+        "6f7485fa",
+        "ultrachat_450587",
+        "ultrachat_378840",
+        "sharegpt_IxOWCIE_9",
+        "ce144f08",
+        "sharegpt_GGZMs1q_0",
+        "29e76903_1",
+        "ultrachat_527342",
+        "ee7f5084_2",
+        "b84b7a2b_1",
+        "18fec702",
+        "sharegpt_SYm10tk_0",
+        "af2d26f1_1"
+      ],
+      "question": "What was the discount I got on my first purchase from the new clothing brand?",
+      "question_id": "726462e0",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 4201,
+        "extraction_out": 78,
+        "reader_in": 294,
+        "reader_out": 23
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- Assembling the IKEA bookshelf took the user 4 hours. (session_id=answer_c63c0458, date=2023/05/30)",
+      "ground_truth": "4 hours",
+      "predicted_answer": "It took you 4 hours to assemble the IKEA bookshelf.",
+      "predicted_session_ids": [
+        "answer_c63c0458",
+        "sharegpt_6fTnCnw_76",
+        "ultrachat_172828",
+        "sharegpt_PCqCVmR_18",
+        "ultrachat_397420",
+        "2ae4f277_1",
+        "b015c3c3_1",
+        "96eac086",
+        "sharegpt_WQr7EZT_0",
+        "4e77dbbe_5",
+        "ultrachat_51030",
+        "43df393f",
+        "5832a64a",
+        "2479cbae",
+        "ultrachat_44942",
+        "67045503",
+        "708e39b6_2",
+        "34deeb0c_2",
+        "ec628e8d_2",
+        "eee3f7d3"
+      ],
+      "question": "How long did it take me to assemble the IKEA bookshelf?",
+      "question_id": "94f70d80",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2952,
+        "extraction_out": 33,
+        "reader_in": 245,
+        "reader_out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- For your sister's birthday, you bought her a yellow dress and a pair of earrings to match. (session_id=answer_fea2e4d3, 2023/05/24)",
+      "ground_truth": "a yellow dress",
+      "predicted_answer": "You bought your sister a yellow dress and a pair of earrings.",
+      "predicted_session_ids": [
+        "answer_fea2e4d3",
+        "89452526_2",
+        "798e4ba3_2",
+        "sharegpt_83fkMsQ_0"
+      ],
+      "question": "What did I buy for my sister's birthday gift?",
+      "question_id": "66f24dbb",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 790,
+        "extraction_out": 42,
+        "reader_in": 253,
+        "reader_out": 13
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- The user noticed that their internet speed has been really good lately, especially when streaming movies on Netflix (session_id=answer_679840f8, date=2023/05/24).  \n- No specific numeric speed or plan details were provided in the conversation.",
+      "ground_truth": "500 Mbps",
+      "predicted_answer": "You did not mention the specific speed of your new internet plan.",
+      "predicted_session_ids": [
+        "answer_679840f8",
+        "3dc02d26_2",
+        "ultrachat_365256",
+        "22aa7cca_3",
+        "ultrachat_74974",
+        "sharegpt_Ck9R9HX_0",
+        "1d6744b5_1",
+        "3030efec_2",
+        "0982a1fa_5",
+        "02f0738e_4",
+        "ultrachat_434062",
+        "a3d2af51_2",
+        "sharegpt_6VqlSoL_33",
+        "a041cdd4_4",
+        "ultrachat_150500",
+        "sharegpt_xcd9nky_8",
+        "f2939479_1",
+        "sharegpt_zdDMlRC_0",
+        "ultrachat_50497",
+        "af4d4ecd_4"
+      ],
+      "question": "What speed is my new internet plan?",
+      "question_id": "ad7109d1",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 4032,
+        "extraction_out": 55,
+        "reader_in": 263,
+        "reader_out": 13
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- On the last trip to Costa Rica, the user packed 7 shirts. (session_id=answer_82a04f59, date=2023/05/29)",
+      "ground_truth": "7",
+      "predicted_answer": "You packed 7 shirts for your 5-day trip to Costa Rica.",
+      "predicted_session_ids": [
+        "answer_82a04f59",
+        "4ebc182b",
+        "73d5f10c",
+        "32a67b35",
+        "38e4b795_2",
+        "13047a02",
+        "ultrachat_284576",
+        "266d604c",
+        "d5a6f455_2",
+        "4d49a574_2",
+        "ced213c6",
+        "deb12028_4",
+        "sharegpt_M7hMNNF_11",
+        "db6ddaba",
+        "bdd64321",
+        "ultrachat_560731",
+        "ultrachat_328044",
+        "ultrachat_111924",
+        "ultrachat_205613",
+        "c2204106_1"
+      ],
+      "question": "How many shirts did I pack for my 5-day trip to Costa Rica?",
+      "question_id": "af8d2e46",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 3865,
+        "extraction_out": 37,
+        "reader_in": 253,
+        "reader_out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user's previous stance on spirituality was that they were a staunch atheist. (session_id=answer_8f276838, date=2023/05/24)",
+      "ground_truth": "A staunch atheist",
+      "predicted_answer": "Your previous stance on spirituality was that you were a staunch atheist.",
+      "predicted_session_ids": [
+        "answer_8f276838",
+        "8d74c5f6",
+        "ultrachat_278202",
+        "959e6cb0_3",
+        "sharegpt_MKMWjX0_25",
+        "sharegpt_nc62Spr_7",
+        "0f417163"
+      ],
+      "question": "What was my previous stance on spirituality?",
+      "question_id": "dccbc061",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 889,
+        "extraction_out": 36,
+        "reader_in": 244,
+        "reader_out": 14
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user's favorite brand for running shoes is Nike. (session_id=answer_761acef8, date=2023/05/29)",
+      "ground_truth": "Nike",
+      "predicted_answer": "Your favorite brand for running shoes is Nike.",
+      "predicted_session_ids": [
+        "answer_761acef8",
+        "66e94928",
+        "19ec83c5_1",
+        "2b16f3d6_1",
+        "9c5f1314_1",
+        "b818e2a1_1",
+        "05be3ff0_4",
+        "eb403c80_2",
+        "sharegpt_6CsjCEy_0",
+        "25432e10",
+        "e89b6be2_2",
+        "eb5d5a93_1",
+        "998616b4_4",
+        "sharegpt_pRqHb1o_0"
+      ],
+      "question": "What brand are my favorite running shoes?",
+      "question_id": "c8c3f81d",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2536,
+        "extraction_out": 31,
+        "reader_in": 239,
+        "reader_out": 9
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user completed a certification in Data Science last month. (session_id=answer_8ad8a34f, date=2023/05/28)",
+      "ground_truth": "Data Science",
+      "predicted_answer": "You completed a certification in Data Science last month.",
+      "predicted_session_ids": [
+        "answer_8ad8a34f",
+        "b53f447a_1",
+        "90a5e1f3_1",
+        "27d378b2_3",
+        "03b4d5d8_2",
+        "sharegpt_63UtcGZ_0",
+        "0908f614",
+        "d4f7a065_2",
+        "795534dc_3",
+        "d87ea945",
+        "b2ecce8d_1",
+        "407dd888",
+        "01e806f0_1"
+      ],
+      "question": "What certification did I complete last month?",
+      "question_id": "8ebdbe50",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1915,
+        "extraction_out": 34,
+        "reader_in": 242,
+        "reader_out": 10
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- You own three bikes: a road bike, a mountain bike, and a commuter bike. (session_id=answer_e623ae87, date=2023/05/27)",
+      "ground_truth": "three",
+      "predicted_answer": "You own three bikes.",
+      "predicted_session_ids": [
+        "answer_e623ae87",
+        "ultrachat_377741",
+        "ultrachat_360618",
+        "ultrachat_499691",
+        "285a29e7_2",
+        "258645ba_1",
+        "ultrachat_249928",
+        "sharegpt_mWhypBl_0",
+        "f5b33470_abs",
+        "02f0738e_1",
+        "sharegpt_D9kTAIU_0",
+        "dded1725_3",
+        "49b78a55_2",
+        "sharegpt_ba4V2an_2",
+        "ultrachat_489527",
+        "afffd8ec_3",
+        "ultrachat_522170",
+        "ultrachat_353985",
+        "ultrachat_448279",
+        "ultrachat_180302"
+      ],
+      "question": "How many bikes do I own?",
+      "question_id": "6b168ec8",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 3097,
+        "extraction_out": 38,
+        "reader_in": 245,
+        "reader_out": 5
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "NO_RELEVANT_FACTS",
+      "ground_truth": "Golden Retriever",
+      "predicted_answer": "You did not mention your dog's breed.",
+      "predicted_session_ids": [
+        "answer_723bf11f"
+      ],
+      "question": "What breed is my dog?",
+      "question_id": "75499fd8",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 434,
+        "extraction_out": 6,
+        "reader_in": 213,
+        "reader_out": 8
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user caught 12 largemouth bass on their last fishing trip to Lake Michigan. (session_id=answer_1e6d4567, date=2023/05/21)",
+      "ground_truth": "12",
+      "predicted_answer": "You caught 12 largemouth bass on your fishing trip to Lake Michigan.",
+      "predicted_session_ids": [
+        "answer_1e6d4567",
+        "7a7a4bf0_4",
+        "ultrachat_172276",
+        "a3118ef0_1",
+        "0d0a89dc_1",
+        "sharegpt_6byuqlt_0",
+        "dc378711_1",
+        "ultrachat_115100",
+        "ultrachat_388075",
+        "sharegpt_omPL4EE_0",
+        "ultrachat_250763",
+        "ultrachat_159732",
+        "d0785ee9_1",
+        "sharegpt_pMczn7z_0",
+        "ultrachat_37989",
+        "ultrachat_175807",
+        "ultrachat_148297",
+        "ultrachat_155792",
+        "1b2b30d3",
+        "3fa35683_6"
+      ],
+      "question": "How many largemouth bass did I catch on my fishing trip to Lake Michigan?",
+      "question_id": "21436231",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2960,
+        "extraction_out": 40,
+        "reader_in": 256,
+        "reader_out": 15
+      },
+      "correct_llm_judge": true
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 60235,
+    "out": 1545
+  },
+  "metrics_llm_judge": {
+    "overall": {
+      "accuracy": 0.84,
+      "n": 25
+    },
+    "judge_model": "gpt-4.1-mini",
+    "judge_cost_usd": 0.0027,
+    "single-session-user": {
+      "accuracy": 0.84,
+      "n": 25
+    }
+  }
+}

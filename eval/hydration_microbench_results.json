@@ -1,0 +1,41 @@
+{
+  "benchmark": "local_fs_hydration_microbench",
+  "updated_at": "2026-05-14T18:26:43.303543+00:00",
+  "notes": "Local filesystem read through hydrate_local_blob; not hosted API latency and not object-storage latency.",
+  "iterations": 20,
+  "warmup": 3,
+  "sizes": {
+    "1KB": {
+      "content_bytes": 1024,
+      "iterations": 20,
+      "p50_ms": 0.0568,
+      "p95_ms": 0.0605,
+      "min_ms": 0.0555,
+      "max_ms": 0.0608
+    },
+    "10KB": {
+      "content_bytes": 10240,
+      "iterations": 20,
+      "p50_ms": 0.0583,
+      "p95_ms": 0.0605,
+      "min_ms": 0.0566,
+      "max_ms": 0.061
+    },
+    "100KB": {
+      "content_bytes": 102400,
+      "iterations": 20,
+      "p50_ms": 0.0734,
+      "p95_ms": 0.0767,
+      "min_ms": 0.0698,
+      "max_ms": 0.0772
+    },
+    "1MB": {
+      "content_bytes": 1048576,
+      "iterations": 20,
+      "p50_ms": 0.1707,
+      "p95_ms": 0.1732,
+      "min_ms": 0.168,
+      "max_ms": 0.1734
+    }
+  }
+}

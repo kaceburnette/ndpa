@@ -14,12 +14,17 @@ await ndpa.logTurn(sessionId, "user", userMessage);
 
 // Before generating a response:
 const { predictions } = await ndpa.getPredictions(sessionId, { k: 3 });
-const stagedContext = predictions.map(p => p.content).join("\n");
+const stagedContext = predictions
+  .map(p => p.content_preview || p.content)
+  .join("\n");
 
 // Pass stagedContext into your LLM call as system context.
 ```
 
 That's it. 5 lines. Works with any LLM.
+
+Predictive memory index for AI apps. Core returns handles/previews/scores;
+Hydration fetches raw context only when needed.
 
 ## What integrating gives you
 
@@ -49,11 +54,20 @@ client = Client(api_key=API_KEY, platform="my_chat_app")
 client.log_exchange(session_id, user_msg, assistant_msg)
 
 # Before responding to a new message:
+client.stage(session_id, query=new_user_msg, k=3)
 result = client.get_predictions(session_id, query=new_user_msg, k=3)
 context = "\n".join(p["content"][:500] for p in result["predictions"])
 ```
 
-Cost: 2 API calls per turn. Latency: <300ms each, both async.
+Cost: 2-3 API calls per turn depending on whether you stage. The cold
+FastAPI -> Supabase pooler path can be hundreds of ms, so latency-sensitive
+apps should call `/stage` before generation or between turns and then read
+`/predictions` from the warm staged cache.
+
+Hosted responses should be treated as Memory handles plus previews. Use
+`memory_handle` / `session_id`, `content_preview`, `score`, and `storage_key`
+in the hot path. Fetch raw context through Hydration only when the selected
+handle needs full detail.
 
 ### Pattern 2: Agent / coding tool (Cursor/Continue style)
 
@@ -65,7 +79,8 @@ client.log_events(session_id, [
     {"role": "tool", "tool_name": "read_file", "source_path": path, "ts": time.time()}
 ])
 
-# Before next user message arrives, async-prefetch context:
+# Before next user message arrives, stage context:
+client.stage(session_id, k=5)
 predictions = client.get_predictions(session_id, k=5)
 # Use file kernel predictions: predictions[i]["source_path"] is what to pre-load
 ```
@@ -105,7 +120,13 @@ c = Client(api_key="ndpa_...", platform="myapp")
 c.log_turn(session_id, role, content)           # single turn
 c.log_events(session_id, events)                # batch up to 1000
 c.log_exchange(session_id, user, assistant)     # convenience for chat apps
+c.stage(session_id, query=None, k=5)            # precompute warm result
 c.get_predictions(session_id, query=None, k=5)  # returns top-K past context
+c.hydrate(memory_handles=[...])                 # fetch raw context if needed
+c.reasoning("question", session_id=session_id)  # premium answer layer
+c.get_config()                                  # public prices/metrics
+c.get_usage(days=30)                            # usage summary
+c.checkout()                                    # billing handoff
 ```
 
 ### TypeScript
@@ -121,7 +142,11 @@ const c = new Client({ apiKey: "ndpa_...", platform: "myapp" });
 await c.logTurn(sessionId, role, content);
 await c.logEvents(sessionId, events);
 await c.logExchange(sessionId, userMsg, assistantMsg);
+await c.stage(sessionId, { query, k: 5 });
 const { predictions } = await c.getPredictions(sessionId, { query, k: 5 });
+const { contexts } = await c.hydrate({ memoryHandles: [predictions[0].memory_handle!] });
+const answer = await c.reasoning(query, { sessionId, k: 5 });
+const usage = await c.getUsage({ days: 30 });
 ```
 
 Both SDKs are **zero dependencies** and **async-by-default**. Event posting
@@ -131,18 +156,30 @@ is fire-and-forget; latency to your hot path is <10ms.
 
 For platforms that want to run NDPA on their own infra:
 
-1. Create a Supabase project (or use any Postgres + edge function runtime)
-2. Run migrations: `supabase/migrations/*.sql`
-3. Deploy edge functions: `supabase/functions/{events,predictions,health}`
+1. Create a Postgres/Supabase project with the clean metadata schema
+2. Store raw memory in local FS, S3, R2, or another blob/object store
+3. Deploy the FastAPI server in `server/`
 4. Point SDKs at your URL:
 
 ```python
-client = Client(api_key=KEY, base_url="https://your-domain.com/v1")
+client = Client(api_key=KEY, base_url="https://api.your-domain.com")
 ```
 
 ## API contracts
 
-### `POST /v1/events`
+### `GET /config`
+
+Public products, pricing, metrics, and whether billing is configured.
+
+### `GET /account`
+
+Authenticated metadata for the current API key.
+
+### `GET /usage`
+
+Authenticated usage summary from `ndp_usage_events`.
+
+### `POST /events`
 
 ```json
 {
@@ -155,10 +192,16 @@ client = Client(api_key=KEY, base_url="https://your-domain.com/v1")
 }
 ```
 
-Response: `200 { ok: true, received: N, session_id, turn_count }`.
+Response: `200 { inserted: N, invalidated_predictions: N }`.
 Errors: `400` (validation), `401` (auth), `413` (size), `429` (rate limit), `500`.
 
-### `POST /v1/predictions`
+### `POST /stage`
+
+Same request shape as `/predictions`. Runs the cold metadata ranking now,
+stores the result in the staged cache, and returns `{staged_id, predictions,
+latency_ms, expires_in_sec}`.
+
+### `POST /predictions`
 
 ```json
 {
@@ -178,7 +221,11 @@ Response:
       "score": 0.92,
       "recency_score": 0.85,
       "topic_score": 0.95,
-      "content": "first 5000 chars",
+      "memory_handle": "uuid",
+      "content_preview": "short preview for hot path use",
+      "storage_key": "conversations/user/session.ndp",
+      "content_bytes": 12048,
+      "content": "legacy preview alias",
       "started_at": "2025-08-12T..."
     }
   ],
@@ -187,27 +234,68 @@ Response:
 }
 ```
 
-### `GET /v1/health`
+### `POST /hydrate`
 
-Returns `{healthy: true|false, db: "healthy", latency_ms}`. No auth.
+```json
+{
+  "memory_handles": ["session_123"],
+  "storage_keys": ["local://..."],
+  "end_user_id": "optional"
+}
+```
+
+Response: `{ "contexts": [...], "latency_ms": 1 }`.
+
+### `POST /reasoning`
+
+Premium answer layer: Memory -> optional Hydration -> LLM answer.
+
+```json
+{
+  "session_id": "current-session-or-empty-string",
+  "query": "What should the assistant remember?",
+  "k": 5,
+  "hydrate": true
+}
+```
+
+Hosted mode uses `OPENAI_API_KEY` configured on the NDPA API. BYOK mode sends
+the customer key as `X-OpenAI-API-Key`; NDPA does not store it.
+
+### `POST /checkout`
+
+Authenticated billing handoff. Returns a configured Stripe payment link when
+`NDPA_STRIPE_PAYMENT_LINK` is set.
+
+### `POST /admin/api-keys`
+
+Admin-only key minting. Requires `X-NDPA-Admin-Token`.
+
+### `GET /health`
+
+Returns `{status: "ok", ts: ...}`. No auth.
 
 ## Rate limits
 
-600 requests per minute per API key, per endpoint. Headers on every response:
+Current in-process limits:
 
-- `x-ratelimit-limit: 600`
-- `x-ratelimit-remaining: 599`
+- `/events`: 600 req/min/key
+- `/stage`: 300 req/min/key
+- `/predictions`: 300 req/min/key
+- `/hydrate`: 120 req/min/key
+- `/reasoning`: 60 req/min/key
 
-When exceeded: `429` with `{ error: "rate_limit_exceeded" }`. Retry after the
-next minute boundary.
+When exceeded: `429`. For multi-machine deployments, replace the in-memory
+limiter with Redis or another shared counter.
 
 For enterprise volume (>10k req/min), contact for a custom limit.
 
 ## Common questions
 
 **Q: Will this slow down my AI app?**
-A: No. Event posting is async (returns in <10ms). Predictions are <2s but
-you call them before generation, not during.
+A: Event posting is async. For latency-sensitive apps, call `/stage` before
+the answer is needed. Then `/predictions` returns the staged handles from the
+warm cache; use `/hydrate` only for selected raw context.
 
 **Q: What if my user is offline?**
 A: SDK queues locally. Auto-flushes when network returns.
@@ -219,5 +307,6 @@ A: Yes. HTTPS + Bearer auth. Any language.
 A: One SQL query: `DELETE FROM ndp_* WHERE user_id = $1`. See SECURITY.md.
 
 **Q: How does pricing work?**
-A: Currently free / open source. Hosted enterprise plan available for
-multi-tenant deployments. See pricing page.
+A: Preview pricing is in `docs/PRICING.md`: Predict $0.03/1K, Memory
+$0.10/1K, Hydration $0.05/1K plus bytes, Reasoning BYOK $5/1K, hosted
+Reasoning $40/1K.

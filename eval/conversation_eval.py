@@ -35,11 +35,32 @@ MIN_PAST_CONVS = 1     # need at least this many past convs to score
 STOP = set("the a an and or but if then else for of to in on with at by from as is was are be been being have has had do does did this that these those it its they them their".split())
 WORD_RE = re.compile(r"[a-zA-Z]{3,}")
 
+_STEM_SUFFIXES = [
+    ("ational", "ate"), ("tional", "tion"), ("enci", "ence"), ("anci", "ance"),
+    ("izer", "ize"), ("ising", "ise"), ("izing", "ize"), ("ising", "ise"),
+    ("ational", "ate"), ("alism", "al"), ("aliti", "al"), ("alism", "al"),
+    ("fulness", "ful"), ("ousness", "ous"), ("iveness", "ive"), ("ication", "ic"),
+    ("ations", "ate"), ("nesses", "ness"), ("ments", "ment"), ("ities", "ity"),
+    ("ators", "ate"), ("ation", "ate"), ("eness", "ene"), ("ating", "ate"),
+    ("ement", ""), ("iness", "y"), ("ness", ""), ("ment", ""), ("ings", ""),
+    ("tion", "t"), ("ions", ""), ("ies", "y"), ("ing", ""), ("ers", ""),
+    ("ity", ""), ("ous", ""), ("ive", ""), ("ful", ""), ("ism", ""),
+    ("ize", ""), ("ise", ""), ("ate", ""), ("ion", ""), ("al", ""),
+    ("ed", ""), ("er", ""), ("ly", ""), ("es", ""), ("ic", ""),
+]
+
+
+def _stem(word: str) -> str:
+    for suffix, replacement in _STEM_SUFFIXES:
+        if word.endswith(suffix) and len(word) - len(suffix) + len(replacement) >= 4:
+            return word[: len(word) - len(suffix)] + replacement
+    return word
+
 
 def tokenize(text: str) -> Counter:
-    """Cheap bag-of-words. No embeddings. Production would use better."""
+    """Bag-of-words with light suffix stemming. Applied consistently to both sides."""
     words = (w.lower() for w in WORD_RE.findall(text))
-    return Counter(w for w in words if w not in STOP)
+    return Counter(_stem(w) for w in words if w not in STOP)
 
 
 def cosine(a: Counter, b: Counter) -> float:

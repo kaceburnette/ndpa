@@ -1,0 +1,1542 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "40.0% string-overlap"
+  },
+  "cost_usd": 0.1169,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 77.25,
+  "metrics": {
+    "abstention": {
+      "accuracy": 0.0,
+      "n": 5
+    },
+    "knowledge-update": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "multi-session": {
+      "accuracy": 0.4,
+      "n": 5
+    },
+    "overall": {
+      "accuracy": 0.4,
+      "n": 35
+    },
+    "single-session-assistant": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "single-session-preference": {
+      "accuracy": 0.0,
+      "n": 5
+    },
+    "single-session-user": {
+      "accuracy": 0.6,
+      "n": 5
+    },
+    "temporal-reasoning": {
+      "accuracy": 0.2,
+      "n": 5
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 35,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "answer_session_ids": [
+        "answer_280352e9"
+      ],
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The user graduated with a degree in Business Administration. (session_id=answer_280352e9, date=2023/05/30)",
+      "ground_truth": "Business Administration",
+      "predicted_answer": "You graduated with a degree in Business Administration.",
+      "predicted_session_ids": [
+        "answer_280352e9",
+        "02bd2b90_3"
+      ],
+      "question": "What degree did I graduate with?",
+      "question_date": "2023/05/30 (Tue) 23:40",
+      "question_id": "e47becba",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 433,
+        "extraction_out": 31,
+        "reader_in": 283,
+        "reader_out": 9
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_40a90d51"
+      ],
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- Your daily commute to work takes 45 minutes each way. (source: session_id=answer_40a90d51 date=2023/05/22)",
+      "ground_truth": "45 minutes each way",
+      "predicted_answer": "Your daily commute to work takes 45 minutes each way.",
+      "predicted_session_ids": [
+        "answer_40a90d51",
+        "db73b7e4_4",
+        "ultrachat_392094",
+        "afe04238_1",
+        "ultrachat_498215",
+        "628c958c_7",
+        "ultrachat_246088",
+        "5dce60dd",
+        "sharegpt_6poO9nA_41",
+        "0afa904a",
+        "ultrachat_577747",
+        "5209e813_2",
+        "ultrachat_387144",
+        "b5f561f5_2",
+        "ultrachat_311002",
+        "65698aa9_4",
+        "sharegpt_5V5H2HN_0",
+        "79f74d4e_1",
+        "7d8b5834_1",
+        "1f88b2b3"
+      ],
+      "question": "How long is my daily commute to work?",
+      "question_date": "2023/05/30 (Tue) 20:36",
+      "question_id": "118b2229",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 5394,
+        "extraction_out": 35,
+        "reader_in": 289,
+        "reader_out": 12
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_d61669c7"
+      ],
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- The user redeemed a $5 coupon on coffee creamer last Sunday. (source: session_id=answer_d61669c7 date=2023/05/29)  \n- The coupon was found in the user's email inbox. (source: session_id=answer_d61669c7 date=2023/05/29)",
+      "ground_truth": "Target",
+      "predicted_answer": "You redeemed the $5 coupon on coffee creamer last Sunday, which you found in your email inbox.",
+      "predicted_session_ids": [
+        "answer_d61669c7",
+        "5c44d9fe_1",
+        "07ba9acd_2"
+      ],
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "question_date": "2023/05/30 (Tue) 20:42",
+      "question_id": "51a45a95",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 859,
+        "extraction_out": 69,
+        "reader_in": 327,
+        "reader_out": 21
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_355c48bb"
+      ],
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "- The user attended a play at the local community theater and was impressed by the lead actress's performance, who reminded them of their friend Emily, an aspiring actress. (session_id=answer_355c48bb, date=2023/05/26)  \n- No specific name or title of the play was mentioned in the conversation.",
+      "ground_truth": "The Glass Menagerie",
+      "predicted_answer": "You did not mention the name or title of the play you attended at the local community theater.",
+      "predicted_session_ids": [
+        "answer_355c48bb",
+        "sharegpt_gmLF3PE_17",
+        "ultrachat_304942",
+        "1587bd78_1",
+        "ultrachat_268434",
+        "ultrachat_132201",
+        "ultrachat_365156",
+        "sharegpt_LG0uJvY_0",
+        "sharegpt_DGiqvVv_270",
+        "sharegpt_9qAGH5s_0",
+        "sharegpt_M84blrA_53",
+        "sharegpt_PancT1q_0",
+        "07b7a667_1",
+        "07b7a667_1",
+        "7e17ae56_5",
+        "ultrachat_71618",
+        "80082060_2",
+        "ultrachat_366731",
+        "ultrachat_221066",
+        "5b83c26e_1"
+      ],
+      "question": "What play did I attend at the local community theater?",
+      "question_date": "2023/05/30 (Tue) 22:53",
+      "question_id": "58bf7951",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 4547,
+        "extraction_out": 69,
+        "reader_in": 325,
+        "reader_out": 19
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_3e012175"
+      ],
+      "category": "single-session-user",
+      "correct": true,
+      "extracted_facts": "- The name of the playlist you created on Spotify is \"Summer Vibes.\" (session_id=answer_3e012175, date=2023/05/21)",
+      "ground_truth": "Summer Vibes",
+      "predicted_answer": "The name of the playlist you created on Spotify is \"Summer Vibes.\"",
+      "predicted_session_ids": [
+        "answer_3e012175",
+        "01bd9def",
+        "ultrachat_266656",
+        "7b1d1f43_1",
+        "sharegpt_bph7DTk_7",
+        "8020d945_2",
+        "ultrachat_271928",
+        "e132259f",
+        "4d0d7984"
+      ],
+      "question": "What is the name of the playlist I created on Spotify?",
+      "question_date": "2023/05/30 (Tue) 19:19",
+      "question_id": "1e043500",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1885,
+        "extraction_out": 36,
+        "reader_in": 293,
+        "reader_out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_c6fd8ebd_abs"
+      ],
+      "category": "abstention",
+      "correct": false,
+      "extracted_facts": "- The user did not mention the name of their hamster in the provided conversation chunks.",
+      "ground_truth": "You did not mention this information. You mentioned your cat Luna but not your hamster.",
+      "predicted_answer": "You did not mention the name of your hamster.",
+      "predicted_session_ids": [
+        "ultrachat_404562",
+        "answer_c6fd8ebd_abs",
+        "sharegpt_Sionhxj_245"
+      ],
+      "question": "What is the name of my hamster?",
+      "question_date": "2023/05/30 (Tue) 21:39",
+      "question_id": "0862e8bf_abs",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 726,
+        "extraction_out": 17,
+        "reader_in": 291,
+        "reader_out": 10
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_586de428_abs"
+      ],
+      "category": "abstention",
+      "correct": false,
+      "extracted_facts": "- The user has been collecting vintage cameras for three months as of the conversation on 2023/05/28. (source: session_id=answer_586de428_abs, date=2023/05/28)  \n- There is no mention of the user collecting vintage films in the provided conversation chunks.",
+      "ground_truth": "You did not mention this information. You mentioned collecting vintage cameras but not vintage films.",
+      "predicted_answer": "You did not mention collecting vintage films.",
+      "predicted_session_ids": [
+        "answer_586de428_abs",
+        "565929a2_2",
+        "375e27b9_2",
+        "sharegpt_JSxa86k_19",
+        "sharegpt_Ql85pW6_0",
+        "sharegpt_ooVEXje_0",
+        "9b638f21_4",
+        "66d120f4_2",
+        "3590f50d",
+        "sharegpt_bmEgv3O_5"
+      ],
+      "question": "How long have I been collecting vintage films?",
+      "question_date": "2023/05/30 (Tue) 23:02",
+      "question_id": "15745da0_abs",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2405,
+        "extraction_out": 64,
+        "reader_in": 339,
+        "reader_out": 8
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_e6143162_abs"
+      ],
+      "category": "abstention",
+      "correct": false,
+      "extracted_facts": "NO_RELEVANT_FACTS",
+      "ground_truth": "You did not mention this information. You mentioned baking for your niece's birthday party but not your uncle's",
+      "predicted_answer": "You did not mention what you baked for your uncle's birthday party.",
+      "predicted_session_ids": [
+        "9c68c22f",
+        "sharegpt_hn3IS1q_0",
+        "ultrachat_551398",
+        "sharegpt_SF6KWw1_9",
+        "answer_e6143162_abs",
+        "375354d1_2",
+        "86fa0672_1"
+      ],
+      "question": "What did I bake for my uncle's birthday party?",
+      "question_date": "2023/05/30 (Tue) 15:26",
+      "question_id": "bc8a6e93_abs",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1539,
+        "extraction_out": 6,
+        "reader_in": 284,
+        "reader_out": 14
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_5ff494b9_abs"
+      ],
+      "category": "abstention",
+      "correct": false,
+      "extracted_facts": "NO_RELEVANT_FACTS",
+      "ground_truth": "You did not mention this information. You mentioned staying in Japan, but not in Korea.",
+      "predicted_answer": "You did not mention how long you were in Korea.",
+      "predicted_session_ids": [
+        "answer_5ff494b9_abs",
+        "sharegpt_G9RAbBH_0",
+        "d0b0dabe",
+        "e44a5733_1",
+        "sharegpt_d0i4rE2_0",
+        "63d78b44_2"
+      ],
+      "question": "How long was I in Korea for?",
+      "question_date": "2023/05/30 (Tue) 17:14",
+      "question_id": "19b5f2b3_abs",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 1399,
+        "extraction_out": 6,
+        "reader_in": 281,
+        "reader_out": 11
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_7cc5362f_abs"
+      ],
+      "category": "abstention",
+      "correct": false,
+      "extracted_facts": "- The user mentioned practicing guitar for 30 minutes daily, which has been helping them progress nicely (session_id=answer_7cc5362f_abs, date=2023/05/22).\n- No specific mention of daily practice time for violin was found in the provided conversation chunks.",
+      "ground_truth": "You did not mention this information. You mentioned practing guitar everyday, but not violin.",
+      "predicted_answer": "You did not mention daily practice time for violin.",
+      "predicted_session_ids": [
+        "ultrachat_70054",
+        "ultrachat_441324",
+        "ultrachat_13007",
+        "cc50c6a9",
+        "b67748d1_1",
+        "01ecd4fa_3",
+        "sharegpt_ItFPuha_0",
+        "64b7d9cc_2",
+        "edd89480_1",
+        "sharegpt_thlhgI9_43",
+        "1516d4c8",
+        "60f10fd3",
+        "sharegpt_5n9NBC8_0",
+        "answer_7cc5362f_abs",
+        "sharegpt_nxDXxpp_0",
+        "ultrachat_233500",
+        "2f63ef92_1",
+        "ultrachat_414997",
+        "7363604d_2",
+        "ultrachat_446910"
+      ],
+      "question": "How much time do I dedicate to practicing violin every day?",
+      "question_date": "2023/05/30 (Tue) 20:28",
+      "question_id": "29f2956b_abs",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 4963,
+        "extraction_out": 59,
+        "reader_in": 337,
+        "reader_out": 10
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_afa9873b_2",
+        "answer_afa9873b_3",
+        "answer_afa9873b_1"
+      ],
+      "category": "multi-session",
+      "correct": false,
+      "extracted_facts": "- The user needs to return some boots to Zara. (source: session_id=answer_afa9873b_3, date=2023/02/15)\n- The user originally got the boots on February 5th but exchanged them for a larger size. (source: session_id=answer_afa9873b_3, date=2023/02/15)\n- The user has not yet picked up the new larger size boots from Zara. (source: session_id=answer_afa9873b_3, date=2023/02/15)\n- The user also needs to pick up dry cleaning for a navy blue blazer worn a few weeks ago. (source: session_id=answer_afa9873b_2, date=2023/02/15)",
+      "ground_truth": 3,
+      "predicted_answer": "You need to pick up one item (the larger size boots) and return one item (the original boots) to Zara. So, in total, you have two items of clothing-related footwear to handle.",
+      "predicted_session_ids": [
+        "answer_afa9873b_3",
+        "answer_afa9873b_1",
+        "85846900_2",
+        "answer_afa9873b_2",
+        "fa46a10e",
+        "ad3d0815_1",
+        "25091584_1",
+        "e6790684_1",
+        "afbd7193_2",
+        "ultrachat_331531",
+        "439f9ed8_3",
+        "sharegpt_U3S02iq_0",
+        "ultrachat_158784",
+        "sharegpt_ZzArUrr_0",
+        "3f05c474",
+        "f5a8b1d0_1",
+        "ultrachat_327634",
+        "ultrachat_428050",
+        "ultrachat_62232",
+        "ultrachat_287397"
+      ],
+      "question": "How many items of clothing do I need to pick up or return from a store?",
+      "question_date": "2023/02/15 (Wed) 23:50",
+      "question_id": "0a995998",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6154,
+        "extraction_out": 164,
+        "reader_in": 6363,
+        "reader_out": 41
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_ec904b3c_1",
+        "answer_ec904b3c_4",
+        "answer_ec904b3c_3",
+        "answer_ec904b3c_2"
+      ],
+      "category": "multi-session",
+      "correct": false,
+      "extracted_facts": "- You led the data analysis team for a Marketing Research class project involving a comprehensive market analysis for a new product launch. (session_id=answer_ec904b3c_1, date=2023/05/21)  \n- You have been leading a team of five engineers since your promotion to senior software engineer three months ago. (session_id=2e4430d8_2, date=2023/05/28)",
+      "ground_truth": 2,
+      "predicted_answer": "You have led or are currently leading two projects:\n1. Led the data analysis team for a Marketing Research class project involving a comprehensive market analysis for a new product launch.  \n2. Currently leading a team of five engineers since your promotion to senior software engineer three months ago.",
+      "predicted_session_ids": [
+        "answer_ec904b3c_1",
+        "2e4430d8_2",
+        "a9981dc6_3",
+        "dae3906e_2",
+        "ultrachat_184799",
+        "878271ae_2",
+        "sharegpt_zciCXP1_12",
+        "answer_ec904b3c_2",
+        "sharegpt_nVi6tIt_0",
+        "f6246b5f",
+        "sharegpt_SbkKtuo_0",
+        "sharegpt_oXgiN7q_53",
+        "sharegpt_jDUWXpR_57",
+        "5558a42e_2",
+        "sharegpt_UbMVpdp_93",
+        "sharegpt_yzR1YLf_0",
+        "a51d15cd_3",
+        "answer_ec904b3c_4",
+        "ultrachat_294469",
+        "a245a0df_2"
+      ],
+      "question": "How many projects have I led or am currently leading?",
+      "question_date": "2023/05/30 (Tue) 23:32",
+      "question_id": "6d550036",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6126,
+        "extraction_out": 90,
+        "reader_in": 6261,
+        "reader_out": 55
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_593bdffd_4",
+        "answer_593bdffd_1",
+        "answer_593bdffd_3",
+        "answer_593bdffd_2"
+      ],
+      "category": "multi-session",
+      "correct": true,
+      "extracted_facts": "- The user recently got a 1/72 scale B-29 bomber model kit. (2023/05/20)\n- The user also recently got a 1/24 scale '69 Camaro model kit at a model show last weekend. (2023/05/20)\n- The user recently finished a simple Revell F-15 Eagle kit picked up in late April. (2023/05/27)\n- The user recently finished a Tamiya 1/48 scale Spitfire Mk.V model kit. (2023/05/30)\n- The user started working on a diorama featuring a 1/16 scale German Tiger I tank. (2023/05/29)",
+      "ground_truth": "I have worked on or bought five model kits. The scales of the models are: Revell F-15 Eagle (scale not mentioned), Tamiya 1/48 scale Spitfire Mk.V, 1/16 scale German Tiger I tank, 1/72 scale B-29 bomber, and 1/24 scale '69 Camaro.",
+      "predicted_answer": "You have worked on or bought at least five model kits:\n\n1. 1/72 scale B-29 bomber (recently got)\n2. 1/24 scale '69 Camaro (recently got)\n3. Revell F-15 Eagle (recently finished)\n4. Tamiya 1/48 scale Spitfire Mk.V (recently finished)\n5. 1/16 scale German Tiger I tank diorama (started working on)\n\nSo, the total count is five model kits.",
+      "predicted_session_ids": [
+        "answer_593bdffd_4",
+        "answer_593bdffd_1",
+        "sharegpt_MNdE67E_17",
+        "9ef698bc_2",
+        "e60a93ff_2",
+        "2f09d4c8",
+        "b70358bc_1",
+        "ultrachat_233858",
+        "ultrachat_126967",
+        "sharegpt_AhS7uI8_351",
+        "a7d014e4_1",
+        "5b9c49f7",
+        "ultrachat_566770",
+        "answer_593bdffd_2",
+        "ultrachat_307895",
+        "eb47739f_2",
+        "ultrachat_59708",
+        "ultrachat_325246",
+        "2f310ba0",
+        "answer_593bdffd_3"
+      ],
+      "question": "How many model kits have I worked on or bought?",
+      "question_date": "2023/05/30 (Tue) 20:57",
+      "question_id": "gpt4_59c863d7",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6797,
+        "extraction_out": 145,
+        "reader_in": 6987,
+        "reader_out": 104
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_a8b4290f_3",
+        "answer_a8b4290f_1",
+        "answer_a8b4290f_2"
+      ],
+      "category": "multi-session",
+      "correct": false,
+      "extracted_facts": "- The user had a 3-day solo camping trip to Big Sur in early April 2023. (session_id=answer_a8b4290f_2, date=2023/04/29)\n- The user had a 5-day camping trip to Yellowstone National Park last month (March 2023). (session_id=answer_a8b4290f_1, date=2023/04/29)\n- The user had a 7-day family road trip in Utah in February 2023, which involved a lot of driving and hiking but no camping. (session_id=answer_a8b4290f_3, date=2023/04/29)\n\nSummary: The user spent a total of 8 days camping in the United States this year (3 days at Big Sur + 5 days at Yellowstone).",
+      "ground_truth": "8 days.",
+      "predicted_answer": "You spent a total of 8 days camping in the United States this year: 3 days on a solo camping trip to Big Sur in early April 2023 and 5 days camping at Yellowstone National Park in March 2023.",
+      "predicted_session_ids": [
+        "ultrachat_565056",
+        "ultrachat_53385",
+        "sharegpt_XWqXdom_0",
+        "answer_a8b4290f_3",
+        "answer_a8b4290f_2",
+        "ultrachat_375427",
+        "35dcacdc_2",
+        "ultrachat_367439",
+        "answer_a8b4290f_1",
+        "ultrachat_491007",
+        "sharegpt_hfWd2FK_0",
+        "f2ccf83b",
+        "6685e6cd",
+        "7294438c",
+        "dc968254_1",
+        "ultrachat_62905",
+        "sharegpt_8j6pKOA_7",
+        "ultrachat_221335",
+        "ultrachat_212029",
+        "ultrachat_511737"
+      ],
+      "question": "How many days did I spend on camping trips in the United States this year?",
+      "question_date": "2023/04/29 (Sat) 23:45",
+      "question_id": "b5ef892d",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6626,
+        "extraction_out": 174,
+        "reader_in": 6845,
+        "reader_out": 48
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_86c505e7_1",
+        "answer_86c505e7_2"
+      ],
+      "category": "multi-session",
+      "correct": true,
+      "extracted_facts": "- The user watched all 22 Marvel Cinematic Universe movies in two weeks. (session_id=answer_86c505e7_1, date=2023/05/23)\n- The user watched all the main Star Wars films in a week and a half. (session_id=answer_86c505e7_2, date=2023/05/25)",
+      "ground_truth": "3.5 weeks",
+      "predicted_answer": "You watched all 22 Marvel Cinematic Universe movies in two weeks and all the main Star Wars films in a week and a half.",
+      "predicted_session_ids": [
+        "answer_86c505e7_2",
+        "answer_86c505e7_1",
+        "a63ad8e3_2",
+        "7c82a6c3",
+        "sharegpt_CK9naiz_63",
+        "sharegpt_sDfu38Q_0",
+        "ultrachat_310037",
+        "ultrachat_30928",
+        "8fb3fe3a_1",
+        "8a4850d0",
+        "63388005",
+        "a110c4dc_2",
+        "db6ab13b_1",
+        "sharegpt_d8EB6Ze_0",
+        "ultrachat_173326",
+        "ultrachat_388607",
+        "sharegpt_hvdBqMM_0",
+        "ultrachat_441881",
+        "ultrachat_391615",
+        "6387e969"
+      ],
+      "question": "How many weeks did it take me to watch all the Marvel Cinematic Universe movies and the main Star Wars films?",
+      "question_date": "2023/05/30 (Tue) 18:41",
+      "question_id": "e831120c",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6645,
+        "extraction_out": 79,
+        "reader_in": 6769,
+        "reader_out": 27
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_edb03329"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "ROUTED_TO_RAW_CONTEXT: preference questions preserve nuance better without extraction.",
+      "ground_truth": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "predicted_answer": "You enjoy using Adobe Premiere Pro and are interested in advanced settings. To learn more about video editing, especially with Premiere Pro, start by exploring:\n\n- The Effects and Transitions panel to customize and combine effects.\n- The Effect Controls Panel for detailed effect adjustments.\n- Third-party plugins like Video Copilot's Orb for expanded creative options.\n- Multi-camera editing features, including creating multi-camera sequences and syncing angles.\n- The Lumetri Color Panel, focusing on using the Creative and Curves panels together for cohesive color grading.\n\nThese areas provide a solid foundation for advancing your video editing skills. Additionally, many online tutorials, courses, and forums dedicated to Premiere Pro can further support your learning.",
+      "predicted_session_ids": [
+        "answer_edb03329",
+        "6a5b5a78",
+        "6dcf5fa0_1",
+        "d8b3e1c8_2",
+        "3392c0c7",
+        "ultrachat_10500",
+        "76967d22",
+        "sharegpt_osTHjYi_0",
+        "9f091256_1",
+        "sharegpt_DwfIyV9_0",
+        "3d0c9f89_1",
+        "898bef66",
+        "dc700e27",
+        "a2e2cb72_3",
+        "ultrachat_118671",
+        "84f2d563_1",
+        "b67748d1_1",
+        "e3cc9931_1",
+        "sharegpt_7edkkdO_19",
+        "ultrachat_419825"
+      ],
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "question_date": "2023/05/30 (Tue) 22:03",
+      "question_id": "8a2466db",
+      "retrieval_source": "local",
+      "routed_mode": "raw_context",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 6356,
+        "reader_out": 137
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_555dfb94"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "ROUTED_TO_RAW_CONTEXT: preference questions preserve nuance better without extraction.",
+      "ground_truth": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "predicted_answer": "You have a Sony A7R IV and a Godox V1 flash. To complement your photography setup, consider these accessories:\n\n1. Protective cases or pouches specifically for the Godox V1 flash to keep it safe.\n2. Camera bags designed for Sony cameras that can carry your camera, lenses, flash, and other gear.\n3. Additional lenses suited to your photography style.\n4. Extra batteries and memory cards for extended shooting.\n5. Light modifiers for your flash, such as diffusers or gels, to control lighting effects.\n6. A sturdy tripod for stable shots.\n7. Remote shutter release for hands-free shooting.\n\nIf you provide more details about your photography needs, I can offer more personalized accessory recommendations.",
+      "predicted_session_ids": [
+        "ultrachat_448784",
+        "a6074da9_1",
+        "sharegpt_GSC090N_6",
+        "3e9fce53_1",
+        "answer_555dfb94",
+        "ca929779_1",
+        "8fcfbe43_2",
+        "465e7ef9",
+        "sharegpt_InRLwN7_0",
+        "42165950_2",
+        "ultrachat_489051",
+        "ultrachat_506627",
+        "ultrachat_556731",
+        "ultrachat_319509",
+        "be1c6872",
+        "368276ab_3",
+        "sharegpt_m8q9RaM_0",
+        "sharegpt_Lk4UN8n_181",
+        "sharegpt_5cxEGva_147",
+        "63b51f8a_1"
+      ],
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "question_date": "2023/05/30 (Tue) 16:40",
+      "question_id": "06878be2",
+      "retrieval_source": "local",
+      "routed_mode": "raw_context",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 5967,
+        "reader_out": 146
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_d87a6ef8"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "ROUTED_TO_RAW_CONTEXT: preference questions preserve nuance better without extraction.",
+      "ground_truth": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "predicted_answer": "Based on your interest in multi-agent and multimodal reinforcement learning for autonomous agents, and your goal to pursue a PhD focusing on AI research in Robotics and Autonomous Systems, you might find the following recent conferences and publication venues highly relevant:\n\n- Conferences: NeurIPS, ICML, ICLR, CVPR, ICCV \u2014 these are top peer-reviewed AI conferences where cutting-edge research in reinforcement learning, multi-agent systems, and multimodal learning is frequently published.\n\n- Research groups and researchers: Follow recent publications by Dr. Stefano V Aldrich at the University of Edinburgh, as his work aligns closely with your interests.\n\n- Journals and proceedings from the University of Edinburgh School of Informatics, especially those related to CISA, ANC, and IPAB research centers.\n\nI recommend regularly checking the latest proceedings from these conferences and exploring recent papers on multi-agent and multimodal reinforcement learning to stay updated and prepare for your PhD research.",
+      "predicted_session_ids": [
+        "sharegpt_xni9yYO_6",
+        "ultrachat_165893",
+        "ultrachat_533748",
+        "answer_d87a6ef8",
+        "sharegpt_FYqt26U_0",
+        "c884b67a_1",
+        "ultrachat_569211",
+        "c7270a1b_1",
+        "ultrachat_382018",
+        "2bac8799_3",
+        "sharegpt_E0YL5SX_157",
+        "ultrachat_299979",
+        "e6921729",
+        "sharegpt_GrLzv0V_262",
+        "sharegpt_Vjkqc5J_0",
+        "5a6b1065",
+        "ultrachat_93325",
+        "27d9e492_2",
+        "11e9d591_1",
+        "c51583cd_1"
+      ],
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "question_date": "2023/05/30 (Tue) 13:53",
+      "question_id": "75832dbd",
+      "retrieval_source": "local",
+      "routed_mode": "raw_context",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 6754,
+        "reader_out": 187
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_d586e9cd"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "ROUTED_TO_RAW_CONTEXT: preference questions preserve nuance better without extraction.",
+      "ground_truth": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "predicted_answer": "You did not mention any preferences or past information about hotels in Miami.",
+      "predicted_session_ids": [
+        "f20e72e4_1",
+        "6a747f2e",
+        "answer_d586e9cd",
+        "08ca1f31_2",
+        "53dc1394",
+        "c6c3a982_1",
+        "sharegpt_vbNrVtS_293",
+        "8464304d_2",
+        "sharegpt_DWorlZE_0",
+        "3c3a9042_3",
+        "3f4611f4",
+        "eb0d8dc1_2",
+        "3692218d_1",
+        "ba01118a",
+        "sharegpt_3D3oQC0_131",
+        "25b1afbc",
+        "e25d434b",
+        "5bd9f1e6_4",
+        "e0004164_3",
+        "33d0e4b3_2"
+      ],
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "question_date": "2023/05/30 (Tue) 20:23",
+      "question_id": "0edc2aef",
+      "retrieval_source": "local",
+      "routed_mode": "raw_context",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 5842,
+        "reader_out": 14
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_9b182436"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "ROUTED_TO_RAW_CONTEXT: preference questions preserve nuance better without extraction.",
+      "ground_truth": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "predicted_answer": "You expressed interest in attending cultural events that celebrate language diversity and cultural exchange, especially language exchange events focused on conversational practice. While I don't have access to your location or real-time event data, I recommend checking local cultural centers, community organizations, or language schools, as they often host such events. You can also explore websites and apps dedicated to language exchange meetups to find events near you this weekend.",
+      "predicted_session_ids": [
+        "answer_9b182436",
+        "880ee13e",
+        "ultrachat_267380",
+        "a98ff421_1",
+        "465f0d1b_1",
+        "ultrachat_510702",
+        "ultrachat_39307",
+        "58ae7c4f_3",
+        "c9b1c309_4",
+        "ultrachat_431916",
+        "203bf3fa_2",
+        "0a00a4ca_2",
+        "sharegpt_Vjkqc5J_0",
+        "ultrachat_422353",
+        "d20be4f3_1",
+        "7128c070_2",
+        "ultrachat_557683",
+        "ultrachat_152094",
+        "ultrachat_16847",
+        "e4a1b565_2"
+      ],
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "question_date": "2023/05/30 (Tue) 22:15",
+      "question_id": "35a27287",
+      "retrieval_source": "local",
+      "routed_mode": "raw_context",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 6186,
+        "reader_out": 80
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_d00ba6d0_1",
+        "answer_d00ba6d0_2"
+      ],
+      "category": "temporal-reasoning",
+      "correct": false,
+      "extracted_facts": "- The user visited the Museum of Modern Art (MoMA) on 2023/01/08. (source: rank=3 session_id=answer_d00ba6d0_1 date=2023/01/08)\n- The user attended the \"Ancient Civilizations\" exhibit at the Metropolitan Museum of Art on 2023/01/15. (source: rank=1 session_id=answer_d00ba6d0_2 date=2023/01/15)\n\nTIMELINE:\n- 2023/01/08: Visit to Museum of Modern Art (MoMA)\n- 2023/01/15: Visit to \"Ancient Civilizations\" exhibit at the Metropolitan Museum of Art\n\n- The number of days between 2023/01/08 and 2023/01/15 is 7 days.",
+      "ground_truth": "7 days. 8 days (including the last day) is also acceptable.",
+      "predicted_answer": "7 days passed between your visit to the Museum of Modern Art (MoMA) on 2023/01/08 and the \"Ancient Civilizations\" exhibit at the Metropolitan Museum of Art on 2023/01/15.",
+      "predicted_session_ids": [
+        "answer_d00ba6d0_2",
+        "9e2c2a6c_2",
+        "answer_d00ba6d0_1",
+        "ultrachat_280434",
+        "sharegpt_XlNs8Lz_199",
+        "9242fbe3_1",
+        "ultrachat_318178",
+        "148f87a0_2",
+        "sharegpt_khOmFug_0",
+        "ultrachat_510339",
+        "6e672b84_1",
+        "a7403b3d_4",
+        "sharegpt_7DwoMJg_7",
+        "8d952ece_2",
+        "64c2b3c8",
+        "f04fae0a",
+        "7966888b_3",
+        "ultrachat_23733",
+        "ultrachat_515444",
+        "f5604d30_1"
+      ],
+      "question": "How many days passed between my visit to the Museum of Modern Art (MoMA) and the 'Ancient Civilizations' exhibit at the Metropolitan Museum of Art?",
+      "question_date": "2023/02/01 (Wed) 10:20",
+      "question_id": "gpt4_59149c77",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 7010,
+        "extraction_out": 177,
+        "reader_in": 7232,
+        "reader_out": 48
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_3e9fce53_1",
+        "answer_3e9fce53_2",
+        "answer_3e9fce53_3"
+      ],
+      "category": "temporal-reasoning",
+      "correct": true,
+      "extracted_facts": "- On 2023/02/05, the user helped their friend prepare a nursery and spent an entire Sunday afternoon shopping for baby supplies and decorations at Buy Buy Baby. (source: session_id=answer_3e9fce53_1, date=2023/02/05)\n- On 2023/02/10, the user helped their cousin pick out some stuff for her baby shower, including diapers, wipes, and a baby monitor at Target. (source: session_id=answer_3e9fce53_2, date=2023/02/10)\n- On 2023/02/20, the user ordered a customized phone case for their friend's birthday. (source: session_id=answer_3e9fce53_3, date=2023/02/20)\n\nTIMELINE:\n1. 2023/02/05 - Helped friend prepare nursery\n2. 2023/02/10 - Helped cousin pick out baby shower items\n3. 2023/02/20 - Ordered customized phone case for friend's birthday",
+      "ground_truth": "First, I helped my friend prepare the nursery, then I helped my cousin pick out stuff for her baby shower, and lastly, I ordered a customized phone case for my friend's birthday.",
+      "predicted_answer": "The three events happened in this order from first to last:\n1. Helped friend prepare the nursery on 2023/02/05\n2. Helped cousin pick out stuff for her baby shower on 2023/02/10\n3. Ordered a customized phone case for friend's birthday on 2023/02/20",
+      "predicted_session_ids": [
+        "answer_3e9fce53_3",
+        "answer_3e9fce53_2",
+        "answer_3e9fce53_1",
+        "7d33fcb4_1",
+        "ultrachat_369361",
+        "4376945f",
+        "dc7c53fa_4",
+        "36f8b380_1",
+        "bb27df5e_3",
+        "ultrachat_257206",
+        "1b3e086b",
+        "9f091256_2",
+        "acfdbdcb",
+        "1a29bf1f",
+        "cbc1588c_2",
+        "c73cebb3_2",
+        "ultrachat_308848",
+        "8e226a86",
+        "f78a22b6_1",
+        "sharegpt_nbQ5RpR_0"
+      ],
+      "question": "Which three events happened in the order from first to last: the day I helped my friend prepare the nursery, the day I helped my cousin pick out stuff for her baby shower, and the day I ordered a customized phone case for my friend's birthday?",
+      "question_date": "2023/03/22 (Wed) 21:49",
+      "question_id": "gpt4_f49edff3",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6247,
+        "extraction_out": 227,
+        "reader_in": 6520,
+        "reader_out": 68
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_0b4a8adc_1"
+      ],
+      "category": "temporal-reasoning",
+      "correct": false,
+      "extracted_facts": "- The user met up with their aunt and received a crystal chandelier on 2023/03/04 (session date of the relevant conversation).",
+      "ground_truth": 4,
+      "predicted_answer": "You met up with your aunt and received the crystal chandelier on 2023/03/04. The question reference date is 2023/04/01. The time elapsed between these dates is 28 days, which is exactly 4 weeks ago.",
+      "predicted_session_ids": [
+        "answer_0b4a8adc_1",
+        "sharegpt_tCLMKZY_0",
+        "10889cf0_1",
+        "683c8358_1",
+        "58ec258f_2",
+        "sharegpt_tmFunkX_20",
+        "ultrachat_431324",
+        "ultrachat_230339",
+        "sharegpt_ZUJIuGt_13",
+        "4d6927c2_2",
+        "398f23e7",
+        "sharegpt_11WxPMZ_0",
+        "ultrachat_553734",
+        "ultrachat_478106",
+        "4fe27c66_1",
+        "4a545031_2",
+        "20dcaf44",
+        "ultrachat_386915",
+        "ultrachat_84486",
+        "44e4ae7e"
+      ],
+      "question": "How many weeks ago did I meet up with my aunt and receive the crystal chandelier?",
+      "question_date": "2023/04/01 (Sat) 08:09",
+      "question_id": "71017276",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6350,
+        "extraction_out": 29,
+        "reader_in": 6424,
+        "reader_out": 52
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_4bfcc250_4",
+        "answer_4bfcc250_3",
+        "answer_4bfcc250_2",
+        "answer_4bfcc250_1"
+      ],
+      "category": "temporal-reasoning",
+      "correct": false,
+      "extracted_facts": "- The user participated in the \"24-Hour Bike Ride\" charity event on February 14, 2023, where they cycled for 4 hours non-stop. (session_id=answer_4bfcc250_5, date=2023/02/14)\n- The user participated in the \"Walk for Hunger\" charity event on March 19, 2023, walking 5 kilometers with colleagues. (session_id=answer_4bfcc250_1, date=2023/03/19)\n- No evidence indicates these two events were on consecutive days.\n- No other pairs of charity events on consecutive days are mentioned in the provided data.\n\nTIMELINE:\n- February 14, 2023: Participated in \"24-Hour Bike Ride\" charity event.\n- March 19, 2023: Participated in \"Walk for Hunger\" charity event.\n\nConclusion:\n- There is no evidence that the user participated in two charity events on consecutive days.\n- Therefore, the number of months passed since participating in two charity events in a row on consecutive days cannot be determined from the available information.",
+      "ground_truth": 2,
+      "predicted_answer": "You did not participate in two charity events on consecutive days according to the available information.",
+      "predicted_session_ids": [
+        "aeab3296",
+        "answer_4bfcc250_1",
+        "4bf66c38_2",
+        "f598d30f_1",
+        "answer_4bfcc250_3",
+        "ultrachat_520419",
+        "443dea75",
+        "answer_4bfcc250_4",
+        "a410bab2_3",
+        "b2542345_2",
+        "answer_4bfcc250_2",
+        "47311a4c_1",
+        "sharegpt_KCGdZJP_0",
+        "9d754f54",
+        "ultrachat_396986",
+        "ultrachat_265690",
+        "53949711_2",
+        "ultrachat_507989",
+        "ultrachat_465458",
+        "ultrachat_228593"
+      ],
+      "question": "How many months have passed since I participated in two charity events in a row, on consecutive days?",
+      "question_date": "2023/04/18 (Tue) 03:31",
+      "question_id": "b46e15ed",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6492,
+        "extraction_out": 230,
+        "reader_in": 6767,
+        "reader_out": 17
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_ff201786_1",
+        "answer_ff201786_2"
+      ],
+      "category": "temporal-reasoning",
+      "correct": false,
+      "extracted_facts": "- The user started playing along to their favorite songs on their old keyboard on 2023/03/25. (session_id=answer_ff201786_1, date=2023/03/25)\n- The user discovered a bluegrass band and started enjoying their music on 2023/03/31. (session_id=answer_ff201786_2, date=2023/03/31)\n\nTIMELINE:\n- 2023/03/25: User started playing along to favorite songs on old keyboard.\n- 2023/03/31: User discovered a bluegrass band and started enjoying their music.\n\n- Number of days between 2023/03/25 and 2023/03/31 is 6 days.",
+      "ground_truth": "6 days. 7 days (including the last day) is also acceptable.",
+      "predicted_answer": "6 days passed between 2023/03/25 (started playing keyboard) and 2023/03/31 (discovered bluegrass band).",
+      "predicted_session_ids": [
+        "answer_ff201786_2",
+        "answer_ff201786_1",
+        "70de1bd2",
+        "cbf48918_1",
+        "ultrachat_423544",
+        "1b066639",
+        "128082f8_1",
+        "a7b1b27c",
+        "bb2180e9_3",
+        "ultrachat_57039",
+        "8414cc57",
+        "7ea7741b_2",
+        "630b2de2_1",
+        "sharegpt_9FBCXM8_0",
+        "6414f676_2",
+        "sharegpt_zvmX9pX_25",
+        "f4f4b504_2",
+        "8e895867",
+        "800cfd94",
+        "ultrachat_277063"
+      ],
+      "question": "How many days passed between the day I started playing along to my favorite songs on my old keyboard and the day I discovered a bluegrass band?",
+      "question_date": "2023/04/05 (Wed) 09:11",
+      "question_id": "gpt4_fa19884c",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6544,
+        "extraction_out": 155,
+        "reader_in": 6744,
+        "reader_out": 31
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_a25d4a91_1",
+        "answer_a25d4a91_2"
+      ],
+      "category": "knowledge-update",
+      "correct": false,
+      "extracted_facts": "- The user\u2019s personal best time in a charity 5K run was 25:50 (source: session_id=answer_a25d4a91_2 date=2023/05/30).\n- The user also mentioned a more recent personal best time of 27:12 in a charity 5K run (source: session_id=answer_a25d4a91_1 date=2023/05/23).",
+      "ground_truth": "25 minutes and 50 seconds (or 25:50)",
+      "predicted_answer": "Your most recent personal best time in a charity 5K run was 25:50, as mentioned on 2023/05/30.",
+      "predicted_session_ids": [
+        "answer_a25d4a91_2",
+        "answer_a25d4a91_1",
+        "4aaf678f_3",
+        "9b3a7f2c_1",
+        "d03995c6",
+        "86b8dc6e",
+        "59a6150d_1",
+        "sharegpt_ZWqMvoL_178",
+        "6c456a5d",
+        "sharegpt_YjDWRhe_0",
+        "51a529d2_2",
+        "9f80607d",
+        "6da0bba2_1",
+        "4b637e89_4",
+        "2ea6fda4_2",
+        "d3ee5958_2",
+        "d8cc8b5c_5",
+        "sharegpt_AScF7Wc_0",
+        "131ff17e",
+        "0a7c4f1c_1"
+      ],
+      "question": "What was my personal best time in the charity 5K run?",
+      "question_date": "2023/06/25 (Sun) 13:22",
+      "question_id": "6a1eabeb",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 5930,
+        "extraction_out": 90,
+        "reader_in": 6065,
+        "reader_out": 30
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_3f9693b7_1",
+        "answer_3f9693b7_2"
+      ],
+      "category": "knowledge-update",
+      "correct": true,
+      "extracted_facts": "- The user has tried three different Korean restaurants in their city as of 2023/08/11. (source: rank=1 session_id=answer_3f9693b7_1 date=2023/08/11)\n- The user has tried four different Korean restaurants in their city as of 2023/09/30. (source: rank=2 session_id=answer_3f9693b7_2 date=2023/09/30)",
+      "ground_truth": "four",
+      "predicted_answer": "You have tried four different Korean restaurants in your city as of 2023/09/30.",
+      "predicted_session_ids": [
+        "answer_3f9693b7_1",
+        "answer_3f9693b7_2",
+        "sharegpt_MWlvrvZ_0",
+        "1bc87711_1",
+        "sharegpt_wbbH6cZ_0",
+        "29621a34",
+        "e47d38f4_2",
+        "sharegpt_MD0BL69_53",
+        "402e0082_5",
+        "dc9bf721_1",
+        "03105808_2",
+        "26f9a255_2",
+        "c3567066",
+        "ultrachat_527460",
+        "aa6afba8",
+        "93bed3d8_1",
+        "sharegpt_FkabWXV_105",
+        "sharegpt_jVow2vn_0",
+        "ultrachat_115445",
+        "2fd43bba"
+      ],
+      "question": "How many Korean restaurants have I tried in my city?",
+      "question_date": "2023/10/22 (Sun) 15:38",
+      "question_id": "6aeb4375",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6328,
+        "extraction_out": 100,
+        "reader_in": 6473,
+        "reader_out": 20
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_0b1a0942_1",
+        "answer_0b1a0942_2"
+      ],
+      "category": "knowledge-update",
+      "correct": true,
+      "extracted_facts": "- Rachel recently moved to a new apartment in the city (Chicago) as of May 24, 2023.  \n- Rachel later moved back to the suburbs near a major city, possibly near Tampa, Florida, as of May 27, 2023.",
+      "ground_truth": "the suburbs",
+      "predicted_answer": "Rachel moved back to the suburbs near a major city, possibly near Tampa, Florida, as of May 27, 2023.",
+      "predicted_session_ids": [
+        "answer_0b1a0942_1",
+        "47c5482a",
+        "ultrachat_288747",
+        "answer_0b1a0942_2",
+        "ultrachat_258380",
+        "d1e7d11c_2",
+        "8d77be9a_2",
+        "sharegpt_mMTudFY_0",
+        "020149a5_1",
+        "8bc305e4_2",
+        "062e9120_1",
+        "ultrachat_343392",
+        "sharegpt_hLkmbBL_0"
+      ],
+      "question": "Where did Rachel move to after her recent relocation?",
+      "question_date": "2023/06/13 (Tue) 15:15",
+      "question_id": "830ce83f",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 4212,
+        "extraction_out": 54,
+        "reader_in": 4311,
+        "reader_out": 27
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_3a6f1e82_1",
+        "answer_3a6f1e82_2"
+      ],
+      "category": "knowledge-update",
+      "correct": true,
+      "extracted_facts": "- The user was pre-approved for a $350,000 mortgage from Wells Fargo when buying a $325,000 house. (2023/08/11)\n- The user mentioned being pre-approved for $400,000 from Wells Fargo in a later conversation. (2023/11/30)",
+      "ground_truth": "$400,000",
+      "predicted_answer": "You were most recently pre-approved for $400,000 from Wells Fargo.",
+      "predicted_session_ids": [
+        "answer_3a6f1e82_1",
+        "answer_3a6f1e82_2",
+        "010a28ab_3",
+        "sharegpt_eN4o9Zr_0",
+        "cae09ac0_1",
+        "aaf22693",
+        "a76e7e3c_1",
+        "b0fd1357",
+        "d36d11b9_2"
+      ],
+      "question": "What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?",
+      "question_date": "2023/12/18 (Mon) 04:17",
+      "question_id": "852ce960",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 2929,
+        "extraction_out": 61,
+        "reader_in": 3035,
+        "reader_out": 15
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_6a4f8626_1",
+        "answer_6a4f8626_2"
+      ],
+      "category": "knowledge-update",
+      "correct": true,
+      "extracted_facts": "- You attend yoga classes three times a week, which helps you clear your head and improves your focus on those days. (source: session_id=answer_6a4f8626_2 date=2023/11/30)",
+      "ground_truth": "Three times a week.",
+      "predicted_answer": "You attend yoga classes three times a week, which helps you clear your head and improves your focus on those days.",
+      "predicted_session_ids": [
+        "answer_6a4f8626_2",
+        "sharegpt_E7VUcfj_0",
+        "answer_6a4f8626_1",
+        "5fcca8bc_1",
+        "ultrachat_518638",
+        "dc880372_3",
+        "9418c255",
+        "9bbd38a6",
+        "sharegpt_zn81iL6_9",
+        "87252d80_2",
+        "sharegpt_bFGyimh_0",
+        "c2c11c8c_1",
+        "6da0bba2_1",
+        "fc69fd44_7",
+        "c7847b66_1",
+        "4019b1a8_4",
+        "ultrachat_466374",
+        "8567068d_4",
+        "2bd23659_3",
+        "ef0341d4_2"
+      ],
+      "question": "How often do I attend yoga classes to help with my anxiety?",
+      "question_date": "2023/12/14 (Thu) 06:32",
+      "question_id": "945e3d21",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6171,
+        "extraction_out": 49,
+        "reader_in": 6265,
+        "reader_out": 23
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_sharegpt_5Lzox6N_0"
+      ],
+      "category": "single-session-assistant",
+      "correct": false,
+      "extracted_facts": "- The shift rotation sheet for GM social media agents was created for 7 agents, 4 shifts, and 2 days off for every agent, covering a week from Sunday to Saturday. (session_id=answer_sharegpt_5Lzox6N_0, date=2023/05/24)\n- The shifts were: 8 am - 4 pm (Day Shift), 12 pm - 8 pm (Afternoon Shift), 4 pm - 12 am (Evening Shift), and 12 am - 8 am (Night Shift). (session_id=answer_sharegpt_5Lzox6N_0, date=2023/05/24)\n- The shift rotation sheet was updated with agent names, including Admon, but the exact shift assigned to Admon on Sunday was not explicitly provided in the extracted conversation. (session_id=answer_sharegpt_5Lzox6N_0, date=2023/05/24)",
+      "ground_truth": "Admon was assigned to the 8 am - 4 pm (Day Shift) on Sundays.",
+      "predicted_answer": "The exact shift assigned to Admon on Sunday was not explicitly provided in the previous conversation.",
+      "predicted_session_ids": [
+        "answer_sharegpt_5Lzox6N_0",
+        "5850de18_2",
+        "e89b6be2_2",
+        "ultrachat_541021",
+        "3c3fee41",
+        "dba97bb1_4",
+        "sharegpt_PjFSCFK_9",
+        "sharegpt_yguSguz_0",
+        "sharegpt_xkWMnwQ_0",
+        "3070419a_1",
+        "ad361482_1",
+        "ultrachat_520209",
+        "ultrachat_301437",
+        "ultrachat_89092",
+        "ultrachat_558299",
+        "3b5d9c2d",
+        "6b17c99b_2",
+        "5aed819f",
+        "de93e859",
+        "2bd9990a_3"
+      ],
+      "question": "I'm checking our previous chat about the shift rotation sheet for GM social media agents. Can you remind me what was the rotation for Admon on a Sunday?",
+      "question_date": "2023/05/30 (Tue) 20:16",
+      "question_id": "7161e7e2",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 5999,
+        "extraction_out": 205,
+        "reader_in": 482,
+        "reader_out": 18
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_ultrachat_234453"
+      ],
+      "category": "single-session-assistant",
+      "correct": true,
+      "extracted_facts": "- Cihampelas Walk, also known as Ciwalk, is a shopping center in Bandung famous for its denim street. (source: session_id=answer_ultrachat_234453 date=2023/05/30)\n- Miss Bee Providore is a restaurant mentioned in connection with Bandung that serves Nasi Goreng. (source: session_id=answer_ultrachat_234453 date=2023/05/30)\n- The user expressed intent to try Miss Bee's Nasi Goreng and chocolate brownie at Miss Bee Providore. (source: session_id=answer_ultrachat_234453 date=2023/05/30)",
+      "ground_truth": "Miss Bee Providore",
+      "predicted_answer": "The restaurant in Cihampelas Walk that serves great Nasi Goreng is Miss Bee Providore.",
+      "predicted_session_ids": [
+        "answer_ultrachat_234453",
+        "51c89181_1",
+        "107d40f0",
+        "29116b50_1",
+        "6cf1848e_2",
+        "689fec3d_1",
+        "c8c90a81_1",
+        "7613d5ec_1",
+        "de55485d_1",
+        "ultrachat_172995",
+        "e12cfbcd",
+        "sharegpt_5GYAEJe_23",
+        "21ff9566_2",
+        "367b6c01",
+        "2ec60f51_5",
+        "b4f94171_4",
+        "sharegpt_UtXvMMn_18",
+        "11248f50",
+        "ultrachat_320059",
+        "sharegpt_xwGWeTv_0"
+      ],
+      "question": "I'm planning to visit Bandung again and I was wondering if you could remind me of the name of that restaurant in Cihampelas Walk that serves a great Nasi Goreng?",
+      "question_date": "2023/05/30 (Tue) 23:00",
+      "question_id": "c4f10528",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6465,
+        "extraction_out": 135,
+        "reader_in": 417,
+        "reader_out": 21
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_sharegpt_YkWn1Ne_0"
+      ],
+      "category": "single-session-assistant",
+      "correct": true,
+      "extracted_facts": "- The Plesiosaur has a blue scaly body in the image described in the children's book about dinosaurs. (source: session_id=answer_sharegpt_YkWn1Ne_0 date=2023/05/23)",
+      "ground_truth": "The Plesiosaur had a blue scaly body.",
+      "predicted_answer": "The Plesiosaur has a blue scaly body in the image described in the children's book about dinosaurs.",
+      "predicted_session_ids": [
+        "answer_sharegpt_YkWn1Ne_0",
+        "ultrachat_117600",
+        "9c722816",
+        "sharegpt_M9T66Xd_5",
+        "ultrachat_41485",
+        "ultrachat_84388",
+        "51c262b6_2",
+        "sharegpt_htSCqmh_171",
+        "765ce8a7_3",
+        "48d385f0_1",
+        "9fa1d135_1",
+        "00cbfcfd",
+        "9661e558",
+        "bcdb3847",
+        "644e1d00",
+        "sharegpt_kshUqZh_6",
+        "ultrachat_442154",
+        "ultrachat_11001",
+        "e82ce7cd_5",
+        "07e363d9_2"
+      ],
+      "question": "I'm going back to our previous conversation about the children's book on dinosaurs. Can you remind me what color was the scaly body of the Plesiosaur in the image?",
+      "question_date": "2023/05/30 (Tue) 23:39",
+      "question_id": "89527b6b",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6172,
+        "extraction_out": 50,
+        "reader_in": 331,
+        "reader_out": 22
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_ultrachat_480665"
+      ],
+      "category": "single-session-assistant",
+      "correct": true,
+      "extracted_facts": "- The Sugar Factory is a sweet shop located at Icon Park in Orlando that offers an enormous menu of sweet treats, including specialty drinks and giant milkshakes. (session_id=answer_ultrachat_480665, date=2023/05/21)",
+      "ground_truth": "The Sugar Factory at Icon Park.",
+      "predicted_answer": "The unique dessert shop with the giant milkshakes in Orlando is The Sugar Factory at Icon Park.",
+      "predicted_session_ids": [
+        "answer_ultrachat_480665",
+        "ba944cdc",
+        "c58fdf1e_2",
+        "8221810f_3",
+        "c0d099e6_2",
+        "61e1ba53_2",
+        "30e58d0c_1",
+        "11decc61",
+        "7613d5ec_2",
+        "c81897cd_8",
+        "c81897cd_2",
+        "c38fb85b",
+        "ecc39c87_2",
+        "sharegpt_VCP7qSA_0",
+        "ultrachat_43281",
+        "ultrachat_95525",
+        "sharegpt_NP5eyFN_5",
+        "8ed77bea_1",
+        "e91e8a2e_1",
+        "ultrachat_260641"
+      ],
+      "question": "I'm planning to revisit Orlando. I was wondering if you could remind me of that unique dessert shop with the giant milkshakes we talked about last time?",
+      "question_date": "2023/05/30 (Tue) 19:46",
+      "question_id": "e9327a54",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6525,
+        "extraction_out": 53,
+        "reader_in": 330,
+        "reader_out": 20
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_ultrachat_448704"
+      ],
+      "category": "single-session-assistant",
+      "correct": true,
+      "extracted_facts": "- For a romantic dinner in Rome, the recommended Italian restaurant is Roscioli.  \n- Roscioli has a cozy and intimate atmosphere with soft lighting and excellent service.  \n- The restaurant offers a great wine list and a menu with a range of dishes made with high-quality ingredients.  \n- Roscioli also offers the option to request a private wine and cheese tasting for a unique and romantic dining experience.  \n(Source: session_id=answer_ultrachat_448704, date=2023/05/30)",
+      "ground_truth": "Roscioli",
+      "predicted_answer": "The romantic Italian restaurant in Rome I recommended is Roscioli.",
+      "predicted_session_ids": [
+        "answer_ultrachat_448704",
+        "1ba83815_4",
+        "sharegpt_m8F4NxL_0",
+        "5fc83435_2",
+        "3dc8ba5f_2",
+        "289b3dae",
+        "07e6a3bd_1",
+        "sharegpt_gqkL2Dr_0",
+        "7b1d1f43_2",
+        "7db28e68_1",
+        "ultrachat_149723",
+        "89749c78_1",
+        "sharegpt_TXDvX38_0",
+        "940629b2_1",
+        "sharegpt_ZfdAEyM_0",
+        "sharegpt_MuKLD5B_0",
+        "ultrachat_18414",
+        "aa569c1e",
+        "f35cb519_2",
+        "52381716_2"
+      ],
+      "question": "Can you remind me of the name of the romantic Italian restaurant in Rome you recommended for dinner?",
+      "question_date": "2023/05/30 (Tue) 23:29",
+      "question_id": "4c36ccef",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 6687,
+        "extraction_out": 106,
+        "reader_in": 371,
+        "reader_out": 13
+      },
+      "correct_llm_judge": true
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 275705,
+    "out": 4158
+  },
+  "metrics_llm_judge": {
+    "overall": {
+      "accuracy": 0.8,
+      "n": 35
+    },
+    "judge_model": "gpt-4.1-mini",
+    "judge_cost_usd": 0.0044,
+    "single-session-user": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "abstention": {
+      "accuracy": 1.0,
+      "n": 5
+    },
+    "multi-session": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "single-session-preference": {
+      "accuracy": 0.6,
+      "n": 5
+    },
+    "temporal-reasoning": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "knowledge-update": {
+      "accuracy": 0.8,
+      "n": 5
+    },
+    "single-session-assistant": {
+      "accuracy": 0.8,
+      "n": 5
+    }
+  }
+}

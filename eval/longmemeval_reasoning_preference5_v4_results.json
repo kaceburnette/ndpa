@@ -1,0 +1,319 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "0.0% string-overlap"
+  },
+  "cost_usd": 0.0664,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 30.87,
+  "metrics": {
+    "overall": {
+      "accuracy": 0.0,
+      "n": 5
+    },
+    "single-session-preference": {
+      "accuracy": 0.0,
+      "n": 5
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 5,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "answer_session_ids": [
+        "answer_edb03329"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- Adobe Premiere Pro is a powerful video editing software with many advanced settings to enhance editing skills. (session_id=answer_edb03329, 2023/05/21)  \n- Key areas to master in Premiere Pro include:  \n  - Timeline Panel customization (adding/removing tracks, adjusting track heights, track patching, clip grouping)  \n  - Audio Clip Mixer and audio plugins (Dynamics, EQ effects), Audio Gain, and Normalize features  \n  - Effects and Transitions panel with built-in and third-party plugins (e.g., Video Copilot's Orb)  \n  - Dynamic Link feature for integration with After Effects to create motion graphics, 3D animations, and visual effects  \n  - Proxy media and ingest settings to improve performance and workflow, including use of Media Encoder for batch processing  \n  - Multi-Camera Editing features for working with multiple camera angles simultaneously  \n  - Export settings and Media Encoder for advanced output options  \n- Using the Lumetri Color Panel in Premiere Pro, specifically the Creative panel and Curves panel together, is recommended for cohesive color grading. (session_id=answer_edb03329, 2023/05/21)",
+      "ground_truth": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "predicted_answer": "You enjoy using Adobe Premiere Pro and are interested in advancing your video editing skills. To learn more about video editing, especially with Premiere Pro, focus on mastering these key areas:\n\n- Timeline Panel customization (adding/removing tracks, adjusting track heights, track patching, clip grouping)\n- Audio Clip Mixer and audio plugins (Dynamics, EQ effects), Audio Gain, and Normalize features\n- Effects and Transitions panel, including third-party plugins like Video Copilot's Orb\n- Dynamic Link feature for integration with After Effects for motion graphics and visual effects\n- Proxy media and ingest settings to improve performance and workflow, using Media Encoder for batch processing\n- Multi-Camera Editing features\n- Export settings and advanced output options with Media Encoder\n- Using the Lumetri Color Panel, especially combining the Creative panel and Curves panel for cohesive color grading\n\nFor structured learning, consider Adobe\u2019s official tutorials and courses on Premiere Pro, as well as video editing communities and forums where you can ask questions and share projects. Online platforms like LinkedIn Learning, Udemy, and YouTube channels dedicated to Premiere Pro tutorials can also be very helpful.",
+      "predicted_session_ids": [
+        "answer_edb03329",
+        "6a5b5a78",
+        "6dcf5fa0_1",
+        "d8b3e1c8_2",
+        "3392c0c7",
+        "ultrachat_10500",
+        "76967d22",
+        "sharegpt_osTHjYi_0",
+        "9f091256_1",
+        "sharegpt_DwfIyV9_0",
+        "3d0c9f89_1",
+        "898bef66",
+        "dc700e27",
+        "a2e2cb72_3",
+        "ultrachat_118671",
+        "84f2d563_1",
+        "b67748d1_1",
+        "e3cc9931_1",
+        "sharegpt_7edkkdO_19",
+        "ultrachat_419825",
+        "ultrachat_429689",
+        "1a9f5723_4",
+        "ultrachat_319799",
+        "sharegpt_sfofrkM_7",
+        "82ea1455_1",
+        "da704e79_2",
+        "sharegpt_Ny6xFzC_0",
+        "b2b3936f_2",
+        "2cfb48f2_5",
+        "ultrachat_49039"
+      ],
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "question_date": "2023/05/30 (Tue) 22:03",
+      "question_id": "8a2466db",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 16340,
+        "extraction_out": 237,
+        "reader_in": 16657,
+        "reader_out": 226
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_555dfb94"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- The user owns a Sony A7R IV camera. (session_id=answer_555dfb94, 2023/05/27)\n- The user is upgrading their camera flash and has chosen the Godox V1 flash. (session_id=answer_555dfb94, 2023/05/27)\n- The user is interested in good cases or pouches to protect the Godox V1 flash. (session_id=answer_555dfb94, 2023/05/27)\n- There are many camera bags specifically designed for Sony cameras, with options including backpacks, messenger bags, and shoulder bags. (session_id=answer_555dfb94, 2023/05/27)\n- The choice of camera bag depends on budget, amount of gear to carry, and preferred style of bag. (session_id=answer_555dfb94, 2023/05/27)",
+      "ground_truth": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "predicted_answer": "You own a Sony A7R IV camera and have upgraded your flash to the Godox V1. To complement your current photography setup, consider these accessories:\n\n1. Protective Cases or Pouches for Godox V1 flash to keep it safe.\n2. Camera bags designed for Sony cameras\u2014choose from backpacks, messenger bags, or shoulder bags based on your budget, gear amount, and style preference.\n3. Additional lenses compatible with Sony A7R IV to expand your shooting options.\n4. Extra batteries and memory cards for extended shooting sessions.\n5. Tripod or monopod for stability.\n6. Remote shutter release for hands-free shooting.\n7. Lens filters (e.g., ND, polarizer) to enhance image quality.\n\nIf you want, I can help you narrow down specific products based on your preferences and needs.",
+      "predicted_session_ids": [
+        "ultrachat_448784",
+        "a6074da9_1",
+        "sharegpt_GSC090N_6",
+        "3e9fce53_1",
+        "answer_555dfb94",
+        "ca929779_1",
+        "8fcfbe43_2",
+        "465e7ef9",
+        "sharegpt_InRLwN7_0",
+        "42165950_2",
+        "ultrachat_489051",
+        "ultrachat_506627",
+        "ultrachat_556731",
+        "ultrachat_319509",
+        "be1c6872",
+        "368276ab_3",
+        "sharegpt_m8q9RaM_0",
+        "sharegpt_Lk4UN8n_181",
+        "sharegpt_5cxEGva_147",
+        "63b51f8a_1",
+        "9863a1c8_3",
+        "dc18f65b",
+        "d75245ea",
+        "a67c1862_4",
+        "85b50955_1",
+        "98a893d5",
+        "ultrachat_474421",
+        "347bd498",
+        "e58109ed_1",
+        "79d53fd0_2"
+      ],
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "question_date": "2023/05/30 (Tue) 16:40",
+      "question_id": "06878be2",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 14823,
+        "extraction_out": 191,
+        "reader_in": 15094,
+        "reader_out": 167
+      },
+      "correct_llm_judge": true
+    },
+    {
+      "answer_session_ids": [
+        "answer_d87a6ef8"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- The user has a strong interest in artificial intelligence (AI), specifically in multi-agent and multimodal reinforcement learning, with applications toward environmental sustainability and autonomous agents. (source: session_id=sharegpt_xni9yYO_6, 2023/05/23)\n- The user follows research and publications in multi-agent and multimodal reinforcement learning and is intrigued by the work of Dr. Stefano V Aldrich at the University of Edinburgh. (source: session_id=sharegpt_xni9yYO_6, 2023/05/23)\n- The user aims to publish papers in peer-reviewed AI conferences such as NeurIPS, CVPR, ICML, ICLR, and ICCV. (source: session_id=sharegpt_xni9yYO_6, 2023/05/23)\n- The user is interested in advanced topics in deep learning, including multi-modal image fusion, transfer learning, and domain adaptation in medical imaging. (source: session_id=ultrachat_458202, 2023/05/22)\n- The user requested recommendations for relevant research papers or articles on explainable AI (XAI) in medical image analysis. (source: session_id=sharegpt_FYqt26U_0, 2023/05/22)\n- The user is a continuous learner with a growth mindset and contributes to open source software, maintaining a blog and engaging with the developer community in Python, PyTorch, and TensorFlow. (source: session_id=sharegpt_xni9yYO_6, 2023/05/23)\n\nSummary of relevant recent publications and conferences the user might find interesting:\n- Top AI conferences: NeurIPS, CVPR, ICML, ICLR, ICCV (for multi-agent and multimodal reinforcement learning and autonomous agents)\n- Research papers on explainable AI (XAI) in medical image analysis\n- Research on multi-modal image fusion, transfer learning, and domain adaptation in medical imaging\n\nNo specific recent publication titles were provided in the conversation, but the user is interested in cutting-edge AI and medical imaging research, especially in reinforcement learning and explainability.",
+      "ground_truth": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "predicted_answer": "You are interested in cutting-edge AI research, especially in multi-agent and multimodal reinforcement learning with applications to environmental sustainability and autonomous agents, as well as advanced deep learning topics in medical image analysis like multi-modal image fusion, transfer learning, domain adaptation, and explainable AI (XAI).\n\nBased on this, recent publications and conferences you might find interesting include:\n\n- Top AI conferences such as NeurIPS, CVPR, ICML, ICLR, and ICCV, which frequently feature state-of-the-art research in multi-agent and multimodal reinforcement learning and autonomous systems.\n\n- Research papers and survey articles on explainable AI (XAI) in medical image analysis, focusing on interpretability and trustworthiness of AI models in healthcare.\n\n- Recent studies on multi-modal image fusion, transfer learning, and domain adaptation in medical imaging, which are advancing diagnostic accuracy and model generalization.\n\nYou may want to follow the work of researchers like Dr. Stefano V Aldrich at the University of Edinburgh, whose research aligns with your interests.\n\nSince no specific recent paper titles were provided, I recommend regularly checking the proceedings of these conferences and journals in AI and medical imaging to stay updated on the latest developments.",
+      "predicted_session_ids": [
+        "sharegpt_xni9yYO_6",
+        "ultrachat_165893",
+        "ultrachat_533748",
+        "answer_d87a6ef8",
+        "sharegpt_FYqt26U_0",
+        "c884b67a_1",
+        "ultrachat_569211",
+        "c7270a1b_1",
+        "ultrachat_382018",
+        "2bac8799_3",
+        "sharegpt_E0YL5SX_157",
+        "ultrachat_299979",
+        "e6921729",
+        "sharegpt_GrLzv0V_262",
+        "sharegpt_Vjkqc5J_0",
+        "5a6b1065",
+        "ultrachat_93325",
+        "27d9e492_2",
+        "11e9d591_1",
+        "c51583cd_1",
+        "220cb2a0_2",
+        "5f1f5891",
+        "ultrachat_74821",
+        "47ec1674_2",
+        "sharegpt_sbnodfn_144",
+        "9398da02",
+        "d49b1a24_1",
+        "ultrachat_458202",
+        "1ef63c66",
+        "sharegpt_fK7pfNf_0"
+      ],
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "question_date": "2023/05/30 (Tue) 13:53",
+      "question_id": "75832dbd",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 16879,
+        "extraction_out": 445,
+        "reader_in": 17404,
+        "reader_out": 238
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_d586e9cd"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- NO_RELEVANT_FACTS",
+      "ground_truth": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "predicted_answer": "You did not mention any preferences or past mentions about Miami hotels.",
+      "predicted_session_ids": [
+        "f20e72e4_1",
+        "6a747f2e",
+        "answer_d586e9cd",
+        "08ca1f31_2",
+        "53dc1394",
+        "c6c3a982_1",
+        "sharegpt_vbNrVtS_293",
+        "8464304d_2",
+        "sharegpt_DWorlZE_0",
+        "3c3a9042_3",
+        "3f4611f4",
+        "eb0d8dc1_2",
+        "3692218d_1",
+        "ba01118a",
+        "sharegpt_3D3oQC0_131",
+        "25b1afbc",
+        "e25d434b",
+        "5bd9f1e6_4",
+        "e0004164_3",
+        "33d0e4b3_2",
+        "sharegpt_9EM9xb8_46",
+        "sharegpt_6ZpPBwe_0",
+        "610299eb_1",
+        "c3023a45_1",
+        "ultrachat_95206",
+        "sharegpt_pc6mFD7_39",
+        "32d6bf49",
+        "sharegpt_aVExml0_92",
+        "sharegpt_nHJzPFD_0",
+        "33a813dd_2"
+      ],
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "question_date": "2023/05/30 (Tue) 20:23",
+      "question_id": "0edc2aef",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 15034,
+        "extraction_out": 7,
+        "reader_in": 15122,
+        "reader_out": 13
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_9b182436"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- The user is interested in cultural events or festivals that celebrate language diversity and cultural exchange. (session_id=answer_9b182436, 2023/05/29)\n- The user has volunteered at a cultural festival recently and would love to attend similar events. (session_id=answer_9b182436, 2023/05/29)\n- The assistant suggested ways to find cultural events in the user's area, including checking online event calendars and contacting embassies or consulates of countries with languages of interest. (session_id=answer_9b182436, 2023/05/29)\n- Examples of cultural events that might interest the user include language festivals, polyglot conferences, language exchange festivals, and linguistic diversity festivals. (session_id=answer_9b182436, 2023/05/29)\n- The assistant does not have access to the user's location and therefore cannot provide specific event recommendations. (session_id=answer_9b182436, 2023/05/29)",
+      "ground_truth": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "predicted_answer": "You are interested in cultural events or festivals that celebrate language diversity and cultural exchange, and you recently volunteered at a cultural festival. While I don't have access to your location to provide specific events, I suggest checking online event calendars and contacting embassies or consulates of countries whose languages interest you. Look for language festivals, polyglot conferences, language exchange festivals, or linguistic diversity festivals happening this weekend in your area. These types of events align well with your interests and past experiences.",
+      "predicted_session_ids": [
+        "answer_9b182436",
+        "880ee13e",
+        "ultrachat_267380",
+        "a98ff421_1",
+        "465f0d1b_1",
+        "ultrachat_510702",
+        "ultrachat_39307",
+        "58ae7c4f_3",
+        "c9b1c309_4",
+        "ultrachat_431916",
+        "203bf3fa_2",
+        "0a00a4ca_2",
+        "sharegpt_Vjkqc5J_0",
+        "ultrachat_422353",
+        "d20be4f3_1",
+        "7128c070_2",
+        "ultrachat_557683",
+        "ultrachat_152094",
+        "ultrachat_16847",
+        "e4a1b565_2",
+        "f863a648_3",
+        "b78242f5_1",
+        "90403fb9_3",
+        "64071e19_2",
+        "sharegpt_NxkBiMe_0",
+        "ultrachat_126689",
+        "5dcfc9e1_1",
+        "147e93c4",
+        "sharegpt_2LrB18X_13",
+        "99887392_1"
+      ],
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "question_date": "2023/05/30 (Tue) 22:15",
+      "question_id": "35a27287",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 15564,
+        "extraction_out": 212,
+        "reader_in": 15856,
+        "reader_out": 97
+      },
+      "correct_llm_judge": true
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 158773,
+    "out": 1833
+  },
+  "metrics_llm_judge": {
+    "overall": {
+      "accuracy": 0.6,
+      "n": 5
+    },
+    "judge_model": "gpt-4.1-mini",
+    "judge_cost_usd": 0.0009,
+    "single-session-preference": {
+      "accuracy": 0.6,
+      "n": 5
+    }
+  }
+}

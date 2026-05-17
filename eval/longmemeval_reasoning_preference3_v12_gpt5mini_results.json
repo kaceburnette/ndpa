@@ -1,0 +1,218 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "0.0% string-overlap"
+  },
+  "cost_usd": 0.0417,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 73.93,
+  "metrics": {
+    "overall": {
+      "accuracy": 0.0,
+      "n": 3
+    },
+    "single-session-preference": {
+      "accuracy": 0.0,
+      "n": 3
+    }
+  },
+  "model": "gpt-5-mini",
+  "n_items": 3,
+  "partial": false,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "answer_session_ids": [
+        "answer_d87a6ef8"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- 2023-05-22 (session=answer_d87a6ef8): User asked for an overview of recent advancements in deep learning for medical image analysis and requested to \"skip the basics\" because they are working in the field.  \n- 2023-05-22 (session=answer_d87a6ef8): User asked for recommendations of popular datasets for training deep learning models in medical image analysis, specifically for segmentation tasks.  \n- 2023-05-22 (session=answer_d87a6ef8): User requested relevant research papers or articles on explainable AI (XAI) in medical image analysis.  \n- 2023-05-22 (session=answer_d87a6ef8): User asked for research papers/articles on multi-modal image fusion, transfer learning, and domain adaptation in medical imaging.  \n- 2023-05-22 (session=sharegpt_E0YL5SX_157): User (in SOP content) stated a research interest in multi-agent and multimodal reinforcement learning and autonomous agents for environmental/robotics applications.  \n- 2023-05-22 (session=sharegpt_E0YL5SX_157): User indicated an intention to publish in top ML/vision conferences: NeurIPS, CVPR, ICML, ICLR, and ICCV.  \n- 2023-05-20 (session=ultrachat_533748): User expressed interest in Romance novels that are \"steamy\" / contain intimate scenes and also asked for titles featuring a strong female detective protagonist (genre preference: spicy/crime-romance).  \n- 2023-05-21 (session=e6921729): User is considering buying a beginner ukulele and asked for popular beginner brands/models (interest in practical/music gear recommendations).",
+      "ground_truth": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "ultrachat_533748",
+        "5a6b1065",
+        "e6921729",
+        "c7270a1b_1",
+        "sharegpt_xni9yYO_6",
+        "c51583cd_1",
+        "sharegpt_FYqt26U_0",
+        "ultrachat_165893",
+        "9ac3fa82_1",
+        "c884b67a_1",
+        "answer_d87a6ef8",
+        "5f1f5891",
+        "6172cc72_1",
+        "2bac8799_3",
+        "47ec1674_2",
+        "d49b1a24_1",
+        "220cb2a0_2",
+        "ultrachat_74821",
+        "ultrachat_299979",
+        "ultrachat_382018",
+        "be753d18",
+        "ultrachat_569211",
+        "sharegpt_twjWPzl_0",
+        "sharegpt_Vjkqc5J_0",
+        "11e9d591_1",
+        "sharegpt_E0YL5SX_157",
+        "sharegpt_y7MbHgZ_21",
+        "27d9e492_2",
+        "sharegpt_GrLzv0V_262",
+        "9398da02"
+      ],
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "question_date": "2023/05/30 (Tue) 13:53",
+      "question_id": "75832dbd",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 18646,
+        "extraction_out": 2430,
+        "reader_in": 18845,
+        "reader_out": 500,
+        "repair_in": 0,
+        "repair_out": 0
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_0250ae1c"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- User binge-listened the entire \"Crime Junkie\" podcast in 5 days and is \"hooked\". (session=573dc24b_1 date=2023/05/29)\n- User asked for more true-crime podcast recommendations, indicating a strong interest in true crime. (session=573dc24b_1 date=2023/05/29)\n- User is an aspiring stand-up comedian seeking to improve their craft. (session=answer_0250ae1c date=2023/05/29)\n- User specifically referenced John Mulaney's \"Kid Gorgeous\" as an example of stand-up with strong storytelling. (session=answer_0250ae1c date=2023/05/29)\n- User asked for stand-up specials on Netflix similar to \"Kid Gorgeous\", showing interest in Netflix comedy specials with strong storytelling. (session=answer_0250ae1c date=2023/05/29)\n- Assistant recommended these Netflix stand-up specials: \"Hasan Minhaj: Homecoming King\" (2017), \"Ali Wong: Hard Knock Wife\" (2018), \"Hannah Gadsby: Nanette\" (2018), and \"Brian Regan: Nunchucks and Flamethrowers\" (2017). (session=answer_0250ae1c date=2023/05/29)\n- User listens to podcasts consistently (daily/weekly routine) and is interested in productivity/self-improvement podcasts (e.g., The Productivity Show, The Tiny Leaps Podcast, The 5 AM Miracle, Happier with Gretchen Rubin). (sessions=573dc24b_1 date=2023/05/29; 5ace29d7_1 date=2023/05/21)\n- User is interested in documentaries/online resources about ancient Egypt, pyramids, and the Great Sphinx. (session=6d3f5c68_4 date=2023/05/27)\n- User plays \"Ticket to Ride\" with siblings every Sunday evening for the past month and enjoys train-themed games. (session=d6bbe94d_3 date=2023/05/27)\n- User recently bought black Adidas sneakers they \"really like\" (described as \"super comfortable and versatile\") and paid $120. (session=259d58da_2 date=2023/05/27)\n- User enjoys spicy Sichuan food and planned to try Chongqing Spicy Chicken at Z & Y Restaurant in San Francisco. (session=ultrachat_507667 date=2023/05/26)",
+      "ground_truth": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "259d58da_2",
+        "ultrachat_26485",
+        "ultrachat_528391",
+        "c4d370d3_2",
+        "573dc24b_1",
+        "5ace29d7_1",
+        "1b26bdd5_5",
+        "sharegpt_G80BxDv_0",
+        "6d3f5c68_4",
+        "answer_0250ae1c",
+        "35c5419d_abs_2",
+        "04bef53b",
+        "02b99ec3_2",
+        "ultrachat_151060",
+        "60ff3a8c",
+        "b84b7a2b_2",
+        "ultrachat_507667",
+        "a33cf36a_1",
+        "2d6a38fe_1",
+        "ultrachat_486807",
+        "sharegpt_200oseW_0",
+        "sharegpt_PfiDxfU_189",
+        "sharegpt_FbRVgO3_39",
+        "b70358bc_2",
+        "c9a763e9",
+        "3f787a78_4",
+        "sharegpt_WYQSZ3n_0",
+        "sharegpt_zciCXP1_0",
+        "d6bbe94d_3",
+        "ultrachat_339024"
+      ],
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "question_date": "2023/05/30 (Tue) 23:43",
+      "question_id": "32260d93",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 17178,
+        "extraction_out": 1764,
+        "reader_in": 17543,
+        "reader_out": 500,
+        "repair_in": 0,
+        "repair_out": 0
+      },
+      "correct_llm_judge": false
+    },
+    {
+      "answer_session_ids": [
+        "answer_719502eb"
+      ],
+      "category": "single-session-preference",
+      "correct": false,
+      "extracted_facts": "- User: \"I'm thinking of experimenting with some new cocktails this weekend.\" (session answer_719502eb, 2023/05/21)\n- User request: asked for recommendations for summer drinks that incorporate Hendrick's gin. (session answer_719502eb, 2023/05/21)\n- Assistant: Hendrick's gin flavor profile includes notes of rose, cucumber, and juniper. (session answer_719502eb, 2023/05/21)\n- Assistant recipe \u2014 \"Pimm's Cup with a Twist\": mix 1 1/2 oz Hendrick's gin, 1/2 oz lemon juice, 1/2 oz simple syrup, 1/2 oz Pimm's No. (session answer_719502eb, 2023/05/21)\n- Assistant suggestion for serving Pimm's Cup with a Twist: use a Collins glass; garnish (implied) with cucumber slices and mint for a fresh touch and visual appeal. (session answer_719502eb, 2023/05/21)\n- Assistant recipe \u2014 ginger/ginger-beer mix: combine 2 oz Hendrick's gin, 4 oz ginger beer, and a squeeze of lime juice; garnish with a lime wheel and a sprig of mint. (session answer_719502eb, 2023/05/21)\n- Assistant recipe \u2014 \"Summer Solstice\": mix 2 oz Hendrick's gin, 1 oz peach puree, 1 oz lemon juice, and 1/2 oz honey syrup; garnish with a sprig of rosemary and a slice of peach. (session answer_719502eb, 2023/05/21)\n- Assistant recipe \u2014 \"Hendrick's High Tea\": steep a tea bag (e.g., earl grey or English breakfast) in 1 oz hot water for 3\u20135 minutes, then mix with 2 oz Hendrick's gin, 1 oz lemon juice, and 1/2 oz honey syrup; garnish with a lemon slice and a tea bag. (session answer_719502eb, 2023/05/21)\n- Assistant: suggested grapefruit simple syrup will add a pink hue; cucumber slices and mint sprigs add a fresh, refreshing touch; Collins glass showcases these elements. (session answer_719502eb, 2023/05/21)",
+      "ground_truth": "Considering their mixology class background, the user would prefer cocktail suggestions that build upon their existing skills and interests, such as creative variations of classic cocktails or innovative twists on familiar flavors. They might appreciate recommendations that incorporate their experience with refreshing summer drinks like Pimm's Cup. The user would not prefer overly simplistic or basic cocktail recipes, and may not be interested in suggestions that don't take into account their mixology class background.",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "4f3b36d4_5",
+        "answer_719502eb",
+        "9585e0c6_1",
+        "233605cc_2",
+        "e622a1bd",
+        "78dbd237",
+        "ae77c245",
+        "281e9c13",
+        "sharegpt_KmwfEyz_0",
+        "65b01f7c",
+        "ultrachat_183428",
+        "4e3da326_1",
+        "d6f5639a_1",
+        "8e78fa70_1",
+        "3dced3e9_1",
+        "ultrachat_490921",
+        "e42e7876_5",
+        "61d3fec4_1",
+        "deabd4c0_1",
+        "aa930b56_1",
+        "3ceb6783_1",
+        "sharegpt_wN1Z65m_5",
+        "4dc59c52_3",
+        "83a4f14d_1",
+        "ultrachat_9638",
+        "30c293bc",
+        "ultrachat_19734",
+        "ultrachat_13075",
+        "743f03a1_abs_1",
+        "ultrachat_181951"
+      ],
+      "question": "I've been thinking about making a cocktail for an upcoming get-together, but I'm not sure which one to choose. Any suggestions?",
+      "question_date": "2023/05/30 (Tue) 22:31",
+      "question_id": "1a1907b4",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 18045,
+        "extraction_out": 1587,
+        "reader_in": 18361,
+        "reader_out": 500,
+        "repair_in": 0,
+        "repair_out": 0
+      },
+      "correct_llm_judge": false
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 108618,
+    "out": 7281
+  },
+  "metrics_llm_judge": {
+    "overall": {
+      "accuracy": 0.0,
+      "n": 3
+    },
+    "judge_model": "gpt-4.1-mini",
+    "judge_cost_usd": 0.0,
+    "single-session-preference": {
+      "accuracy": 0.0,
+      "n": 3
+    }
+  }
+}

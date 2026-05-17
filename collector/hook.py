@@ -129,6 +129,7 @@ def fire_supabase(session_id: str, ts: float, tool_name: str,
             for p in paths:
                 events.append({
                     "role": "tool",
+                    "content": f"{tool_name}: {p}",
                     "tool_name": tool_name,
                     "source_path": p,
                     "ts": ts,
@@ -333,10 +334,12 @@ def _inject_conversation_predictions(session_id: str):
         client = Client(api_key=api_key, async_send=False, timeout=4.0)
         # Pass empty session_id: trajectory is already in query, no live-session recency bias needed
         result = client.get_predictions("", query=query, k=10)
+        _BENCH_PLATFORMS = {"longmemeval", "locomo", "benchmark", "synthetic"}
         preds = [
             p for p in result.get("predictions", [])
             if p.get("topic_score", 0) > 0.05
-            and len(p.get("content", "")) > 500  # skip shallow/test sessions
+            and len(p.get("content", "")) > 500
+            and (p.get("platform") or "").lower() not in _BENCH_PLATFORMS
         ]
         if not preds:
             return

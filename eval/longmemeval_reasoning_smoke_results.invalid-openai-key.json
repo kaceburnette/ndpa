@@ -1,0 +1,161 @@
+{
+  "architecture": "NDPA Memory candidate generation \u2192 Hydration/full context for selected handles \u2192 category routing/extraction \u2192 reader LLM",
+  "benchmark": "LongMemEval (NDPA Reasoning: Memory \u2192 Hydration \u2192 extraction/routing \u2192 reader)",
+  "comparison": {
+    "e2e_runner_no_extraction": "31.4% string-overlap (nano reader, no extraction)",
+    "mem0_published": "~85% LLM judge (different methodology, full extraction at ingest)",
+    "reasoning_this_run": "0.0% string-overlap"
+  },
+  "cost_usd": 0.0,
+  "dataset": "xiaowu0162/longmemeval-cleaned",
+  "elapsed_sec": 2.0,
+  "metrics": {
+    "overall": {
+      "accuracy": 0.0,
+      "n": 5
+    },
+    "single-session-user": {
+      "accuracy": 0.0,
+      "n": 5
+    }
+  },
+  "model": "gpt-4.1-mini",
+  "n_items": 5,
+  "published_retrieval_notes": {
+    "comparison_status": "No Mem0/Zep/MemGPT LongMemEval category numbers found in the paper; runner records NDPA hit@K only.",
+    "source": "LongMemEval paper reports retrieval baselines such as BM25, Contriever, GTE, and Stella, but not Mem0/Zep/MemGPT in the released benchmark paper."
+  },
+  "retrieval_source": "local",
+  "rows": [
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "",
+      "ground_truth": "Business Administration",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "02bd2b90_3"
+      ],
+      "question": "What degree did I graduate with?",
+      "question_id": "e47becba",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 0,
+        "reader_out": 0
+      }
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "",
+      "ground_truth": "45 minutes each way",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "answer_40a90d51",
+        "ultrachat_498215",
+        "db73b7e4_4",
+        "afe04238_1",
+        "5209e813_2",
+        "ultrachat_387144",
+        "b5f561f5_2",
+        "ultrachat_311002",
+        "65698aa9_4",
+        "sharegpt_5V5H2HN_0",
+        "628c958c_7"
+      ],
+      "question": "How long is my daily commute to work?",
+      "question_id": "118b2229",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 0,
+        "reader_out": 0
+      }
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "",
+      "ground_truth": "Target",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "answer_d61669c7",
+        "5c44d9fe_1"
+      ],
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "question_id": "51a45a95",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 0,
+        "reader_out": 0
+      }
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "",
+      "ground_truth": "The Glass Menagerie",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "answer_355c48bb",
+        "sharegpt_DGiqvVv_270",
+        "sharegpt_M84blrA_53",
+        "ultrachat_71618",
+        "7e17ae56_5",
+        "ultrachat_221066",
+        "sharegpt_PancT1q_0",
+        "sharegpt_9qAGH5s_0",
+        "ultrachat_268434"
+      ],
+      "question": "What play did I attend at the local community theater?",
+      "question_id": "58bf7951",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 0,
+        "reader_out": 0
+      }
+    },
+    {
+      "category": "single-session-user",
+      "correct": false,
+      "extracted_facts": "",
+      "ground_truth": "Summer Vibes",
+      "predicted_answer": "",
+      "predicted_session_ids": [
+        "answer_3e012175",
+        "ultrachat_266656",
+        "01bd9def",
+        "7b1d1f43_1",
+        "8020d945_2",
+        "e132259f"
+      ],
+      "question": "What is the name of the playlist I created on Spotify?",
+      "question_id": "1e043500",
+      "retrieval_source": "local",
+      "routed_mode": "extraction",
+      "tokens": {
+        "extraction_in": 0,
+        "extraction_out": 0,
+        "reader_in": 0,
+        "reader_out": 0
+      }
+    }
+  ],
+  "scorer": "lenient string overlap (proxy for LLM judge \u2014 lower bound)",
+  "split": "s",
+  "tokens": {
+    "in": 0,
+    "out": 0
+  }
+}

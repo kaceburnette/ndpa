@@ -1,6 +1,23 @@
 # NDPA Scaling Characteristics
 
-Measured numbers, not estimates. Reproduce with `python3 -m eval.scaling_benchmark`.
+Core architecture works: Core returns handles/previews/scores; Hydration
+fetches raw context only when needed.
+
+## Current latency status
+
+Local FastAPI -> Supabase pooler cold prediction smoke is currently around
+600-700ms. That is not the voice hot path. The product latency shape is:
+
+1. `/stage` runs prediction before the user asks or between turns.
+2. `/predictions` returns the staged handles/previews from process cache.
+3. `/hydrate` fetches raw context only for selected handles.
+
+Latest local smoke showed warm `/predictions` cache hits around 1-3ms wall
+clock after the first cold miss. Keep reporting cold miss, stage cost, warm
+hit, and hydration latency separately.
+
+The table below is a legacy Supabase Edge Function scaling benchmark. Keep it
+as historical evidence only until the metadata-only FastAPI path is rerun.
 
 ## Predictions API latency by corpus size
 
@@ -39,10 +56,10 @@ corpus size.
 
 ## Wall clock vs server time
 
-The 600ms gap between wall (730ms) and server (110ms) is **network round-trip**
-to `*.supabase.co/functions/v1/predictions`. That's fixed cost, not
-NDPA-dependent. Self-hosting NDPA in your VPC (same region as your AI app)
-cuts wall latency to ~150ms total.
+The cold hosted path includes network round trips to the API host and Postgres
+pooler. NDPA Predict should hide that path by staging ahead. Warm staged reads
+are the number to optimize for voice AI; cold misses remain important for
+honest fallback reporting.
 
 ## Scaling profile for AI platforms
 
@@ -71,7 +88,7 @@ The hot path **never** waits for the network.
 
 ## Rate limits
 
-Current production limits per API key:
+Current configured limits per API key:
 
 - **600 requests/minute** per endpoint
 - **2 MB** max body size

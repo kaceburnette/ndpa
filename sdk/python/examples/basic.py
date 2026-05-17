@@ -31,6 +31,24 @@ def main():
     )
 
     print(f"Sent events for session {session_id}")
+    staged = client.stage(session_id=session_id, query="What example context is ready?", k=3)
+    print("staged", staged.get("latency_ms"), "ms")
+
+    predictions = client.get_predictions(
+        session_id=session_id,
+        query="What example context is ready?",
+        k=3,
+    )
+    print("predictions", len(predictions.get("predictions", [])))
+
+    handles = [
+        item["memory_handle"]
+        for item in predictions.get("predictions", [])
+        if item.get("memory_handle")
+    ]
+    if handles:
+        hydrated = client.hydrate(memory_handles=handles[:1])
+        print("hydrated", len(hydrated.get("contexts", [])))
 
 
 if __name__ == "__main__":

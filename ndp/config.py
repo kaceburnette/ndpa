@@ -35,6 +35,9 @@ def _init_config() -> dict:
         # Set to true to upload file CONTENT (e.g. for hot-tier context staging).
         # File contents only stored when this is explicitly enabled.
         "upload_file_contents": False,
+        # Dogfood API ingestion is opt-in. Without this, local hooks only write
+        # ~/.ndp JSONL and never post to a dev server that happens to be up.
+        "api_base_url": "",
     }
     _write(cfg)
     return cfg
@@ -66,7 +69,7 @@ def is_configured() -> bool:
         return False
     try:
         cfg = json.loads(CONFIG_FILE.read_text())
-        return bool(cfg.get("supabase_key"))
+        return bool(cfg.get("api_key") and cfg.get("api_base_url"))
     except Exception:
         return False
 
