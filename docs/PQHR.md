@@ -131,28 +131,30 @@ cosine does not automatically game BM25.
 
 ## Reference numbers (public, reproducible)
 
-Run on **LongMemEval public dataset** (500 synthetic users, 18,773 PQHR
-samples, trajectory window = 7, BM25 labeler). Verified locally on
-2026-05-14 with `python3 -m eval.pre_query_hit_rate --public
---adaptive-windows --output eval/pre_query_hit_rate_results.json`.
+Run on the fixed **LongMemEval public test split** (400 synthetic users,
+15,043 PQHR samples, trajectory window = 10, BM25 labeler). The first 100
+sorted users are validation-only. Verified locally on 2026-08-11 with
+`python3 -m eval.pre_query_hit_rate --public --trajectory-window 10`.
 
 | Predictor | pqhr@1 | pqhr@3 | pqhr@5 | mrr@5 | ndcg@5 |
 |-----------|--------|--------|--------|-------|--------|
-| Random (sanity) | 0.2045 | 0.5053 | 0.6877 | 0.3743 | 0.2116 |
-| Recency-only | 0.2088 | 0.5029 | 0.6808 | 0.3750 | 0.2098 |
-| Heuristic (0.4 recency + 0.6 topic) | 0.4053 | 0.6966 | 0.8416 | **0.5646** | 0.3621 |
-| Pure topic (NDPA cold-promote) | **0.4054** | **0.6968** | 0.8414 | **0.5646** | **0.3621** |
-| **Multi-signal (NDPA)** | 0.3680 | 0.6879 | **0.8458** | 0.5435 | 0.3533 |
+| Random (sanity) | 0.2043 | 0.5034 | 0.6855 | 0.3732 | 0.2116 |
+| Recency-only | 0.2089 | 0.5044 | 0.6816 | 0.3753 | 0.2101 |
+| Pure topic | **0.4409** | 0.7391 | 0.8606 | 0.5994 | 0.3901 |
+| Multi-signal | 0.3963 | 0.7276 | 0.8615 | 0.5719 | 0.3771 |
+| Trajectory pattern | 0.4225 | **0.7535** | **0.8707** | 0.5949 | 0.3950 |
+| **Trajectory ensemble (NDPA)** | **0.4409** | 0.7531 | 0.8706 | **0.6038** | **0.3969** |
 
-**Lift @5: +16.5 pts over recency, +15.8 pts over random for multi-signal.**
-**Lift @1: pure topic 40.5% vs random 20.5% = 1.98×.**
+**Held-out lift @5: +18.9 pts over recency, +18.6 pts over random.**
+**Lift @1: ensemble 44.1% vs random 20.4% = 2.16×.**
 
-**Caveat (honest):** random@5 is 68.7% on this corpus because each synthetic
+**Caveat (honest):** random@5 is 68.6% on the held-out corpus because each synthetic
 user has a small candidate pool (~30–40 past conversations) and the truth set
 is top-5. Always cite random + recency next to NDPA numbers. Look at @1 for
 the cleaner discrimination signal.
 
-Adaptive window result for multi-signal:
+Legacy all-user adaptive window result for multi-signal (retained for
+reproducibility, not the current headline):
 
 | Window | Samples | pqhr@1 | pqhr@3 | pqhr@5 | mrr@5 | ndcg@5 |
 |-------:|--------:|-------:|-------:|-------:|------:|-------:|
