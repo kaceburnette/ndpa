@@ -111,6 +111,14 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def private_date_night_no_store(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/date-night"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
 async def _create_pool() -> asyncpg.Pool:
     if not DB_DSN:
         raise HTTPException(
@@ -901,7 +909,13 @@ async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]
     async with pool.acquire() as conn:
         history = await conn.fetch("SELECT sender_name, body FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at DESC, id DESC LIMIT 30", room_id)
     transcript = "\n".join(f"{row['sender_name']}: {row['body']}" for row in reversed(history))
-    prompt = "Based on our shared Date Night conversation, help us pick something to watch. Be warm, decisive, and brief. Ask one useful question if there is not enough information; otherwise recommend 3 specific options and explain each in one sentence."
+    prompt = (
+        "You are the helpful friend in Kace and Morgan's private group text. Help them pick a movie or show "
+        "from what they have both said. Sound natural, warm, and a little playful. Never mention being an AI. "
+        "Do not use headings, markdown, or canned introductions. Keep the whole reply under 100 words and use "
+        "at most one emoji. If you need more information, ask one short question. Otherwise choose one best pick "
+        "and give two brief backups, with a specific reason each fits both people."
+    )
     answer = await asyncio.to_thread(
         _call_openai_response,
         api_key=OPENAI_API_KEY,
