@@ -69,6 +69,7 @@ STRIPE_PAYMENT_LINK = os.environ.get("NDPA_STRIPE_PAYMENT_LINK", "")
 ADMIN_TOKEN = os.environ.get("NDPA_ADMIN_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 REASONING_MODEL = os.environ.get("NDPA_REASONING_MODEL", "gpt-5.4-mini")
+DATE_NIGHT_MODEL = "gpt-5-mini"
 REASONING_CONTEXT_CHARS = int(os.environ.get("NDPA_REASONING_CONTEXT_CHARS", "12000"))
 DATE_NIGHT_SESSION_DAYS = 30
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
@@ -449,11 +450,20 @@ def _date_night_password_matches(password: str, stored: str) -> bool:
         return False
 
 
+_DATE_NIGHT_DUMMY_PASSWORD_HASH = _date_night_password_hash(secrets.token_urlsafe(32))
+
+
 def _date_night_email(value: str) -> str:
     email = value.strip().lower()
     if len(email) > 254 or "@" not in email or email.startswith("@") or email.endswith("@"):
         raise HTTPException(status_code=422, detail="Enter a valid email address.")
     return email
+
+
+def _date_night_password(value: str) -> str:
+    if not 12 <= len(value) <= 128:
+        raise HTTPException(status_code=422, detail="Use a password between 12 and 128 characters.")
+    return value
 
 
 def _date_night_name(value: str) -> str:
@@ -724,12 +734,12 @@ async def date_night_me(request: Request) -> dict[str, Any]:
     return {"authenticated": True, "user": {"id": str(user["id"]), "email": user["email"], "display_name": user["display_name"]}}
 
 
+@app.post("/date-night/signup")
 @app.post("/date-night/bootstrap")
 async def date_night_bootstrap(req: DateNightCredentials, request: Request, response: Response) -> dict[str, Any]:
     email = _date_night_email(req.email)
     name = _date_night_name(req.display_name)
-    if len(req.password) < 8:
-        raise HTTPException(status_code=422, detail="Use at least 8 characters for the password.")
+    password = _date_night_password(req.password)
     pool = await _get_pool(request)
     invite_hash = hashlib.sha256(req.invite_token.encode("utf-8")).hexdigest() if req.invite_token else None
     async with pool.acquire() as conn:
@@ -748,12 +758,18 @@ async def date_night_bootstrap(req: DateNightCredentials, request: Request, resp
             existing = await conn.fetchval("SELECT 1 FROM date_night_accounts WHERE email = $1", email)
             if existing:
                 raise HTTPException(status_code=409, detail="An account already exists for that email. Please sign in.")
-            account = await conn.fetchrow(
-                "INSERT INTO date_night_accounts (email, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, display_name",
-                email,
-                name,
-                _date_night_password_hash(req.password),
-            )
+            try:
+                account = await conn.fetchrow(
+                    "INSERT INTO date_night_accounts (email, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, display_name",
+                    email,
+                    name,
+                    _date_night_password_hash(password),
+                )
+            except asyncpg.UniqueViolationError as exc:
+                raise HTTPException(
+                    status_code=409,
+                    detail="An account already exists for that email. Please sign in.",
+                ) from exc
             if invite:
                 await conn.execute("INSERT INTO date_night_memberships (room_id, account_id) VALUES ($1, $2)", invite["room_id"], account["id"])
                 await conn.execute("UPDATE date_night_invites SET claimed_by = $2 WHERE token_hash = $1", invite_hash, account["id"])
@@ -801,12 +817,16 @@ async def date_night_easy_join(req: DateNightEasyJoin, request: Request, respons
 
 @app.post("/date-night/signin")
 async def date_night_signin(req: DateNightSignIn, request: Request, response: Response) -> dict[str, Any]:
-    email = _date_night_email(req.email)
+    # Keep failures deliberately generic so login cannot be used to enumerate
+    # registered addresses. The dummy comparison also reduces timing leakage.
+    email = req.email.strip().lower()
     pool = await _get_pool(request)
     async with pool.acquire() as conn:
         account = await conn.fetchrow("SELECT id, email, display_name, password_hash FROM date_night_accounts WHERE email = $1", email)
-        if not account or not _date_night_password_matches(req.password, account["password_hash"]):
-            raise HTTPException(status_code=401, detail="That email or password does not match an account.")
+        stored_hash = account["password_hash"] if account else _DATE_NIGHT_DUMMY_PASSWORD_HASH
+        password_matches = _date_night_password_matches(req.password, stored_hash)
+        if not account or not password_matches:
+            raise HTTPException(status_code=401, detail="Email or password is incorrect.")
         token, token_hash = _date_night_session_token()
         await conn.execute(
             "INSERT INTO date_night_sessions (token_hash, account_id, expires_at) VALUES ($1, $2, $3)",
@@ -814,6 +834,42 @@ async def date_night_signin(req: DateNightSignIn, request: Request, response: Re
         )
     _set_date_night_cookie(response, token)
     return {"authenticated": True, "user": {"id": str(account["id"]), "email": account["email"], "display_name": account["display_name"]}}
+
+
+@app.post("/date-night/claim")
+async def date_night_claim_account(req: DateNightCredentials, request: Request) -> dict[str, Any]:
+    """Attach permanent credentials to the currently signed-in easy-join account."""
+    email = _date_night_email(req.email)
+    name = _date_night_name(req.display_name)
+    password = _date_night_password(req.password)
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+
+    async with pool.acquire() as conn:
+        try:
+            account = await conn.fetchrow(
+                """
+                UPDATE date_night_accounts
+                SET email = $1, display_name = $2, password_hash = $3
+                WHERE id = $4::uuid
+                RETURNING id, email, display_name
+                """,
+                email,
+                name,
+                _date_night_password_hash(password),
+                str(user["id"]),
+            )
+        except asyncpg.UniqueViolationError as exc:
+            raise HTTPException(status_code=409, detail="An account already exists for that email. Please sign in.") from exc
+
+    return {
+        "authenticated": True,
+        "user": {
+            "id": str(account["id"]),
+            "email": account["email"],
+            "display_name": account["display_name"],
+        },
+    }
 
 
 @app.post("/date-night/signout")
@@ -919,7 +975,7 @@ async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]
     answer = await asyncio.to_thread(
         _call_openai_response,
         api_key=OPENAI_API_KEY,
-        model=REASONING_MODEL,
+        model=DATE_NIGHT_MODEL,
         query=prompt,
         context=transcript or "No preferences yet.",
     )
