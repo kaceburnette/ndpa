@@ -37,7 +37,7 @@ import urllib.error
 import urllib.request
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import asyncpg
 from fastapi import FastAPI, Header, HTTPException, Request, Response
@@ -107,7 +107,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS or ["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-NDPA-Admin-Token", "X-OpenAI-API-Key"],
 )
 
@@ -117,6 +117,8 @@ async def private_date_night_no_store(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/date-night"):
         response.headers["Cache-Control"] = "no-store, max-age=0"
+    elif request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
     return response
 
 
@@ -360,6 +362,12 @@ class DateNightInviteCreate(BaseModel):
     expires_in_days: int = 7
 
 
+class DateNightRoomSettingsUpdate(BaseModel):
+    ai_mode: Literal["quiet", "cohost"] | None = None
+    activity_mode: Literal["watch", "food", "date", "game", "talk"] | None = None
+    date_style: Literal["long_distance", "in_person", "flexible"] | None = None
+
+
 # ── Auth ────────────────────────────────────────────────────────────────────
 
 
@@ -514,7 +522,7 @@ async def _date_night_require_member(pool: asyncpg.Pool, room_id: str, account_i
     async with pool.acquire() as conn:
         room = await conn.fetchrow(
             """
-            SELECT r.id, r.name, r.owner_id
+            SELECT r.id, r.name, r.owner_id, r.ai_mode, r.activity_mode, r.date_style
             FROM date_night_rooms r
             JOIN date_night_memberships m ON m.room_id = r.id
             WHERE r.id = $1::uuid AND m.account_id = $2::uuid
@@ -535,6 +543,74 @@ def _date_night_message(row: Any) -> dict[str, Any]:
         "body": row["body"],
         "created_at": row["created_at"].isoformat(),
     }
+
+
+def _date_night_settings(room: Any) -> dict[str, str]:
+    return {
+        "ai_mode": room["ai_mode"],
+        "activity_mode": room["activity_mode"],
+        "date_style": room["date_style"],
+    }
+
+
+def _date_night_ai_cache_key(
+    human_transcript: str,
+    settings: dict[str, str],
+    *,
+    fresh: bool,
+    invocation: str,
+) -> str:
+    payload = {
+        "fresh": fresh,
+        "human_transcript": human_transcript,
+        "invocation": invocation,
+        "settings": settings,
+    }
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _date_night_assistant_prompt(
+    settings: dict[str, str],
+    *,
+    fresh: bool,
+    mention: bool,
+) -> tuple[str, str]:
+    activity_prompts = {
+        "watch": "Help the couple choose a movie or show.",
+        "food": "Help the couple choose what to eat or make together.",
+        "date": "Help the couple choose a date activity.",
+        "game": "Help the couple choose a game or playful activity.",
+        "talk": "Give the couple a natural conversation prompt or help with what they asked.",
+    }
+    style_prompts = {
+        "long_distance": "Prioritize ideas that work well while they are apart.",
+        "in_person": "Prioritize ideas they can enjoy together in person.",
+        "flexible": "Offer ideas that fit either long-distance or in-person time together.",
+    }
+    activity = settings["activity_mode"]
+    if mention:
+        query = "Answer the request addressed to @DateNight in the latest human message."
+        format_rule = (
+            "Answer the direct request naturally and briefly. If they ask for choices, give exactly three concise choices. "
+            "Otherwise answer in 1-3 short sentences."
+        )
+    else:
+        query = activity_prompts[activity]
+        format_rule = "Give exactly three suggestions, one per line, in the format 'Title or idea — short reason.'"
+    if fresh:
+        if activity == "watch":
+            query = "Search for current and recently released movies or shows, then pick three that fit the group text."
+        else:
+            query += " Search the web for current options only when recency matters."
+    instructions = (
+        "You're a friend in Kace and Morgan's group text. Reply like a normal text, not an assistant. "
+        f"{activity_prompts[activity]} {style_prompts[settings['date_style']]} {format_rule} "
+        "Keep the full reply under 70 words. No headings, bold text, preamble, or phrases like "
+        "'based on your preferences.' If there isn't enough context, ask one short casual question instead. "
+        "No more than one emoji."
+    )
+    return query, instructions
 
 
 def _prediction_cache_key(
@@ -926,7 +1002,57 @@ async def date_night_room(room_id: str, request: Request) -> dict[str, Any]:
     async with pool.acquire() as conn:
         members = await conn.fetch("SELECT a.display_name FROM date_night_memberships m JOIN date_night_accounts a ON a.id = m.account_id WHERE m.room_id = $1::uuid ORDER BY m.joined_at", room_id)
         messages = await conn.fetch("SELECT id, sender_name, kind, body, created_at FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at, id", room_id)
-    return {"room": {"id": str(room["id"]), "name": room["name"], "owner_id": str(room["owner_id"]), "members": [m["display_name"] for m in members]}, "messages": [_date_night_message(row) for row in messages]}
+    return {
+        "room": {
+            "id": str(room["id"]),
+            "name": room["name"],
+            "owner_id": str(room["owner_id"]),
+            "members": [m["display_name"] for m in members],
+            **_date_night_settings(room),
+        },
+        "messages": [_date_night_message(row) for row in messages],
+    }
+
+
+@app.patch("/date-night/rooms/{room_id}/settings")
+async def date_night_update_room_settings(
+    room_id: str,
+    req: DateNightRoomSettingsUpdate,
+    request: Request,
+) -> dict[str, Any]:
+    updates = {
+        "ai_mode": req.ai_mode,
+        "activity_mode": req.activity_mode,
+        "date_style": req.date_style,
+    }
+    if not any(value is not None for value in updates.values()):
+        raise HTTPException(status_code=422, detail="Choose at least one room setting to update.")
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    await _date_night_require_member(pool, room_id, user["id"])
+    async with pool.acquire() as conn:
+        room = await conn.fetchrow(
+            """
+            UPDATE date_night_rooms
+            SET ai_mode = COALESCE($2, ai_mode),
+                activity_mode = COALESCE($3, activity_mode),
+                date_style = COALESCE($4, date_style)
+            WHERE id = $1::uuid
+            RETURNING id, name, owner_id, ai_mode, activity_mode, date_style
+            """,
+            room_id,
+            req.ai_mode,
+            req.activity_mode,
+            req.date_style,
+        )
+    return {
+        "room": {
+            "id": str(room["id"]),
+            "name": room["name"],
+            "owner_id": str(room["owner_id"]),
+            **_date_night_settings(room),
+        }
+    }
 
 
 @app.post("/date-night/rooms/{room_id}/messages")
@@ -962,42 +1088,151 @@ async def date_night_create_invite(room_id: str, req: DateNightInviteCreate, req
     return {"invite_url": f"{str(request.base_url).rstrip('/')}/?invite={token}"}
 
 
-@app.post("/date-night/rooms/{room_id}/assistant")
-async def date_night_assistant(room_id: str, request: Request, fresh: bool = False) -> dict[str, Any]:
-    if not OPENAI_API_KEY:
-        raise HTTPException(status_code=503, detail="The Date Night assistant is not configured yet.")
-    pool = await _get_pool(request)
-    user = await _date_night_user(request, pool)
-    await _date_night_require_member(pool, room_id, user["id"])
+async def _date_night_assistant_response(
+    pool: asyncpg.Pool,
+    room_id: str,
+    room: dict[str, Any],
+    *,
+    fresh: bool,
+    mention: bool,
+) -> tuple[dict[str, Any], bool]:
     async with pool.acquire() as conn:
-        history = await conn.fetch("SELECT sender_name, body FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at DESC, id DESC LIMIT 30", room_id)
-    transcript = "\n".join(f"{row['sender_name']}: {row['body']}" for row in reversed(history))
-    prompt = (
-        "Search for current and recently released movies or shows, then use the group text to pick one."
-        if fresh
-        else "Read the group text and help us decide what to watch next."
+        history = await conn.fetch(
+            """
+            SELECT sender_name, kind, body
+            FROM date_night_messages
+            WHERE room_id = $1::uuid
+            ORDER BY created_at DESC, id DESC
+            LIMIT 30
+            """,
+            room_id,
+        )
+        human_history = await conn.fetch(
+            """
+            SELECT sender_name, body
+            FROM date_night_messages
+            WHERE room_id = $1::uuid AND kind = 'human'
+            ORDER BY created_at DESC, id DESC
+            LIMIT 30
+            """,
+            room_id,
+        )
+    ordered_history = list(reversed(history))
+    transcript = "\n".join(f"{row['sender_name']}: {row['body']}" for row in ordered_history)
+    human_transcript = "\n".join(
+        f"{row['sender_name']}: {row['body']}" for row in reversed(human_history)
     )
+    settings = _date_night_settings(room)
+    cache_key = _date_night_ai_cache_key(
+        human_transcript,
+        settings,
+        fresh=fresh,
+        invocation="mention" if mention else "picker",
+    )
+    async with pool.acquire() as conn:
+        cached = await conn.fetchrow(
+            """
+            SELECT m.id, m.sender_name, m.kind, m.body, m.created_at
+            FROM date_night_ai_cache c
+            JOIN date_night_messages m ON m.id = c.message_id
+            WHERE c.room_id = $1::uuid AND c.cache_key = $2 AND c.expires_at > now()
+            """,
+            room_id,
+            cache_key,
+        )
+    if cached:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "INSERT INTO date_night_messages (room_id, sender_name, kind, body) VALUES ($1::uuid, 'Date Night', 'assistant', $2) RETURNING id, sender_name, kind, body, created_at",
+                room_id,
+                cached["body"],
+            )
+        return _date_night_message(row), True
+
+    prompt, instructions = _date_night_assistant_prompt(settings, fresh=fresh, mention=mention)
     answer = await asyncio.to_thread(
         _call_openai_response,
         api_key=OPENAI_API_KEY,
         model="gpt-4.1-mini" if fresh else DATE_NIGHT_MODEL,
         query=prompt,
         context=transcript or "No preferences yet.",
-        instructions=(
-            "You're a friend in Kace and Morgan's group text. Reply like a normal text, not an assistant. "
-            "Give exactly three picks, one per line, in the format 'Title — short reason.' Keep the full reply "
-            "under 70 words. No heading, numbering, bullets, bold text, preamble, or phrases like 'based on your "
-            "preferences.' If there isn't enough to choose, ask one short casual question instead. No more than one emoji."
-        ),
+        instructions=instructions,
         max_output_tokens=120,
         web_search=fresh,
     )
+    ttl = dt.timedelta(minutes=15) if fresh else dt.timedelta(hours=24)
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "INSERT INTO date_night_messages (room_id, sender_name, kind, body) VALUES ($1::uuid, 'Date Night', 'assistant', $2) RETURNING id, sender_name, kind, body, created_at",
-            room_id, answer,
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                "INSERT INTO date_night_messages (room_id, sender_name, kind, body) VALUES ($1::uuid, 'Date Night', 'assistant', $2) RETURNING id, sender_name, kind, body, created_at",
+                room_id,
+                answer,
+            )
+            await conn.execute(
+                """
+                INSERT INTO date_night_ai_cache
+                    (room_id, cache_key, response_body, message_id, expires_at)
+                VALUES ($1::uuid, $2, $3, $4, $5)
+                ON CONFLICT (room_id, cache_key) DO UPDATE
+                SET response_body = EXCLUDED.response_body,
+                    message_id = EXCLUDED.message_id,
+                    expires_at = EXCLUDED.expires_at,
+                    created_at = now()
+                """,
+                room_id,
+                cache_key,
+                answer,
+                row["id"],
+                dt.datetime.now(dt.timezone.utc) + ttl,
+            )
+    return _date_night_message(row), False
+
+
+@app.post("/date-night/rooms/{room_id}/assistant")
+async def date_night_assistant(room_id: str, request: Request, fresh: bool = False) -> dict[str, Any]:
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="The Date Night assistant is not configured yet.")
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    room = await _date_night_require_member(pool, room_id, user["id"])
+    message, cached = await _date_night_assistant_response(
+        pool,
+        room_id,
+        room,
+        fresh=fresh,
+        mention=False,
+    )
+    return {"message": message, "cached": cached}
+
+
+@app.post("/date-night/rooms/{room_id}/assistant/mention")
+async def date_night_assistant_mention(room_id: str, request: Request) -> dict[str, Any]:
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="The Date Night assistant is not configured yet.")
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    room = await _date_night_require_member(pool, room_id, user["id"])
+    if room["ai_mode"] != "cohost":
+        raise HTTPException(status_code=409, detail="Turn on AI co-host mode to talk directly to @DateNight.")
+    async with pool.acquire() as conn:
+        latest_human = await conn.fetchval(
+            """
+            SELECT body FROM date_night_messages
+            WHERE room_id = $1::uuid AND kind = 'human'
+            ORDER BY created_at DESC, id DESC LIMIT 1
+            """,
+            room_id,
         )
-    return {"message": _date_night_message(row)}
+    if not latest_human or not re.search(r"@date\s*night\b", latest_human, re.IGNORECASE):
+        raise HTTPException(status_code=422, detail="Mention @DateNight in your message first.")
+    message, cached = await _date_night_assistant_response(
+        pool,
+        room_id,
+        room,
+        fresh=False,
+        mention=True,
+    )
+    return {"message": message, "cached": cached}
 
 
 @app.get("/config", response_model=PublicConfigResponse)
