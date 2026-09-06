@@ -519,17 +519,20 @@ async def _date_night_user(request: Request, pool: asyncpg.Pool) -> dict[str, An
 
 
 async def _date_night_require_member(pool: asyncpg.Pool, room_id: str, account_id: Any) -> dict[str, Any]:
-    async with pool.acquire() as conn:
-        room = await conn.fetchrow(
-            """
-            SELECT r.id, r.name, r.owner_id, r.ai_mode, r.activity_mode, r.date_style
-            FROM date_night_rooms r
-            JOIN date_night_memberships m ON m.room_id = r.id
-            WHERE r.id = $1::uuid AND m.account_id = $2::uuid
-            """,
-            room_id,
-            str(account_id),
-        )
+    try:
+        async with pool.acquire() as conn:
+            room = await conn.fetchrow(
+                """
+                SELECT r.id, r.name, r.owner_id, r.ai_mode, r.activity_mode, r.date_style
+                FROM date_night_rooms r
+                JOIN date_night_memberships m ON m.room_id = r.id
+                WHERE r.id = $1::uuid AND m.account_id = $2::uuid
+                """,
+                room_id,
+                str(account_id),
+            )
+    except (asyncpg.DataError, ValueError):
+        room = None
     if not room:
         raise HTTPException(status_code=404, detail="That room is not available to this account.")
     return dict(room)
@@ -903,8 +906,16 @@ async def date_night_signin(req: DateNightSignIn, request: Request, response: Re
     # Keep failures deliberately generic so login cannot be used to enumerate
     # registered addresses. The dummy comparison also reduces timing leakage.
     email = req.email.strip().lower()
+    client_host = request.client.host if request.client else "unknown"
+    email_bucket = hashlib.sha256(email.encode("utf-8")).hexdigest()[:16]
+    _get_rate_limiter(request).check(
+        f"date-night-signin:{client_host}:{email_bucket}",
+        limit=10,
+        window_sec=300,
+    )
     pool = await _get_pool(request)
     async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM date_night_sessions WHERE expires_at <= now()")
         account = await conn.fetchrow("SELECT id, email, display_name, password_hash FROM date_night_accounts WHERE email = $1", email)
         stored_hash = account["password_hash"] if account else _DATE_NIGHT_DUMMY_PASSWORD_HASH
         password_matches = _date_night_password_matches(req.password, stored_hash)

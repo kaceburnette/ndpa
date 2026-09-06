@@ -22,6 +22,21 @@ Operator runbook. Not end-user docs.
   FastAPI connects via service-role `DATABASE_URL` which bypasses RLS by design.
   Direct supabase-js client access is default-deny.
 
+### Date Night access model
+
+Date Night uses its own opaque, HttpOnly session cookie rather than Supabase
+Auth. Browsers call FastAPI only; FastAPI validates the session and room
+membership before reading or changing any `date_night_*` row. Those tables have
+RLS enabled with no client policies, and the `anon` and `authenticated` Data API
+roles have their privileges revoked by
+`db/migrations/20260906_date_night_server_only_rls.sql`.
+
+Keep `DATABASE_URL` server-side. Do not expose it to browser code and do not add
+client RLS policies for Date Night without replacing the custom session model
+with an RLS-compatible identity mechanism. The Postgres owner connection used
+by FastAPI continues to work because table owners bypass RLS by default; do not
+enable `FORCE ROW LEVEL SECURITY` while this access model is in use.
+
 ## Required env vars
 
 ```
