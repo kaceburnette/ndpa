@@ -33,8 +33,7 @@ def console_page():
     return FileResponse(WEB_ROOT / "console.html")
 
 
-@app.get("/{path:path}", include_in_schema=False)
-def single_page_fallback(path: str):
-    if path.startswith("api/"):
-        return {"detail": "Not Found"}
-    return FileResponse(WEB_ROOT / "index.html")
+# Vercel rewrites `/api/*` to this function and strips the `/api` prefix before
+# FastAPI receives the request. Mounting the reusable API at root handles that
+# production shape, while the `/api` mount above keeps local ASGI usage intact.
+app.mount("/", ndpa_app)
