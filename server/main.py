@@ -25,6 +25,7 @@ Deploy:
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import hashlib
 import json
 import math
@@ -38,7 +39,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import asyncpg
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -66,6 +67,7 @@ ADMIN_TOKEN = os.environ.get("NDPA_ADMIN_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 REASONING_MODEL = os.environ.get("NDPA_REASONING_MODEL", "gpt-5-mini")
 REASONING_CONTEXT_CHARS = int(os.environ.get("NDPA_REASONING_CONTEXT_CHARS", "12000"))
+DATE_NIGHT_SESSION_DAYS = 30
 CORS_ORIGINS = [
     origin.strip()
     for origin in os.environ.get("NDPA_CORS_ORIGINS", "*").split(",")
@@ -315,6 +317,30 @@ class ReasoningResponse(BaseModel):
     timing: dict[str, int | bool] | None = None
 
 
+class DateNightCredentials(BaseModel):
+    email: str
+    password: str
+    display_name: str
+    invite_token: str | None = None
+
+
+class DateNightSignIn(BaseModel):
+    email: str
+    password: str
+
+
+class DateNightRoomCreate(BaseModel):
+    name: str
+
+
+class DateNightMessageCreate(BaseModel):
+    body: str
+
+
+class DateNightInviteCreate(BaseModel):
+    expires_in_days: int = 7
+
+
 # ── Auth ────────────────────────────────────────────────────────────────────
 
 
@@ -383,6 +409,104 @@ async def authenticate(pool: asyncpg.Pool, authorization: str | None, cache: TTL
     if cache is not None:
         cache.set(h, auth)
     return auth
+
+
+# ── Date Night auth ────────────────────────────────────────────────────────
+
+
+def _date_night_password_hash(password: str, salt: str | None = None) -> str:
+    salt = salt or secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("ascii"), 310_000)
+    return f"pbkdf2_sha256$310000${salt}${digest.hex()}"
+
+
+def _date_night_password_matches(password: str, stored: str) -> bool:
+    try:
+        algorithm, rounds, salt, expected = stored.split("$", 3)
+        if algorithm != "pbkdf2_sha256":
+            return False
+        actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("ascii"), int(rounds)).hex()
+        return secrets.compare_digest(actual, expected)
+    except (TypeError, ValueError):
+        return False
+
+
+def _date_night_email(value: str) -> str:
+    email = value.strip().lower()
+    if len(email) > 254 or "@" not in email or email.startswith("@") or email.endswith("@"):
+        raise HTTPException(status_code=422, detail="Enter a valid email address.")
+    return email
+
+
+def _date_night_name(value: str) -> str:
+    name = " ".join(value.split())
+    if not 1 <= len(name) <= 60:
+        raise HTTPException(status_code=422, detail="Choose a name between 1 and 60 characters.")
+    return name
+
+
+def _date_night_session_token() -> tuple[str, str]:
+    token = secrets.token_urlsafe(32)
+    return token, hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _set_date_night_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key="date_night_session",
+        value=token,
+        max_age=DATE_NIGHT_SESSION_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+
+
+async def _date_night_user(request: Request, pool: asyncpg.Pool) -> dict[str, Any]:
+    token = request.cookies.get("date_night_session", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Please sign in to continue.")
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT a.id, a.email, a.display_name
+            FROM date_night_sessions s
+            JOIN date_night_accounts a ON a.id = s.account_id
+            WHERE s.token_hash = $1 AND s.expires_at > now()
+            """,
+            token_hash,
+        )
+    if not row:
+        raise HTTPException(status_code=401, detail="Your session has expired. Please sign in again.")
+    return dict(row)
+
+
+async def _date_night_require_member(pool: asyncpg.Pool, room_id: str, account_id: Any) -> dict[str, Any]:
+    async with pool.acquire() as conn:
+        room = await conn.fetchrow(
+            """
+            SELECT r.id, r.name, r.owner_id
+            FROM date_night_rooms r
+            JOIN date_night_memberships m ON m.room_id = r.id
+            WHERE r.id = $1::uuid AND m.account_id = $2::uuid
+            """,
+            room_id,
+            str(account_id),
+        )
+    if not room:
+        raise HTTPException(status_code=404, detail="That room is not available to this account.")
+    return dict(room)
+
+
+def _date_night_message(row: Any) -> dict[str, Any]:
+    return {
+        "id": int(row["id"]),
+        "sender_name": row["sender_name"],
+        "kind": row["kind"],
+        "body": row["body"],
+        "created_at": row["created_at"].isoformat(),
+    }
 
 
 def _prediction_cache_key(
@@ -552,6 +676,212 @@ def _call_openai_response(
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────────
+
+
+# ── Date Night: private shared rooms ───────────────────────────────────────
+
+
+@app.get("/date-night/me")
+async def date_night_me(request: Request) -> dict[str, Any]:
+    pool = await _get_pool(request)
+    try:
+        user = await _date_night_user(request, pool)
+    except HTTPException as exc:
+        if exc.status_code != 401:
+            raise
+        async with pool.acquire() as conn:
+            bootstrapped = await conn.fetchval("SELECT EXISTS (SELECT 1 FROM date_night_bootstrap)")
+        return {"authenticated": False, "bootstrapped": bool(bootstrapped)}
+    return {"authenticated": True, "user": {"id": str(user["id"]), "email": user["email"], "display_name": user["display_name"]}}
+
+
+@app.post("/date-night/bootstrap")
+async def date_night_bootstrap(req: DateNightCredentials, request: Request, response: Response) -> dict[str, Any]:
+    email = _date_night_email(req.email)
+    name = _date_night_name(req.display_name)
+    if len(req.password) < 8:
+        raise HTTPException(status_code=422, detail="Use at least 8 characters for the password.")
+    pool = await _get_pool(request)
+    invite_hash = hashlib.sha256(req.invite_token.encode("utf-8")).hexdigest() if req.invite_token else None
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            is_bootstrapped = await conn.fetchval("SELECT EXISTS (SELECT 1 FROM date_night_bootstrap)")
+            invite = None
+            if is_bootstrapped:
+                if not invite_hash:
+                    raise HTTPException(status_code=403, detail="This is invite-only. Open the invitation link you were sent.")
+                invite = await conn.fetchrow(
+                    "SELECT token_hash, room_id FROM date_night_invites WHERE token_hash = $1 AND claimed_by IS NULL AND expires_at > now() FOR UPDATE",
+                    invite_hash,
+                )
+                if not invite:
+                    raise HTTPException(status_code=403, detail="That invitation has expired or was already used.")
+            existing = await conn.fetchval("SELECT 1 FROM date_night_accounts WHERE email = $1", email)
+            if existing:
+                raise HTTPException(status_code=409, detail="An account already exists for that email. Please sign in.")
+            account = await conn.fetchrow(
+                "INSERT INTO date_night_accounts (email, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, display_name",
+                email,
+                name,
+                _date_night_password_hash(req.password),
+            )
+            if invite:
+                await conn.execute("INSERT INTO date_night_memberships (room_id, account_id) VALUES ($1, $2)", invite["room_id"], account["id"])
+                await conn.execute("UPDATE date_night_invites SET claimed_by = $2 WHERE token_hash = $1", invite_hash, account["id"])
+            else:
+                claimed = await conn.fetchrow(
+                    "INSERT INTO date_night_bootstrap (singleton, owner_id) VALUES (true, $1) ON CONFLICT DO NOTHING RETURNING owner_id",
+                    account["id"],
+                )
+                if not claimed:
+                    raise HTTPException(status_code=403, detail="This is invite-only. Ask the room owner for an invitation link.")
+                room = await conn.fetchrow(
+                    "INSERT INTO date_night_rooms (name, owner_id) VALUES ($1, $2) RETURNING id",
+                    "Our little watchlist ✦",
+                    account["id"],
+                )
+                await conn.execute("INSERT INTO date_night_memberships (room_id, account_id) VALUES ($1, $2)", room["id"], account["id"])
+                await conn.execute(
+                    "INSERT INTO date_night_messages (room_id, sender_name, kind, body) VALUES ($1, $2, 'assistant', $3)",
+                    room["id"],
+                    "Date Night",
+                    "Hi! Tell me what you both usually love, what you want to avoid tonight, and how much emotional damage a show is allowed to cause.",
+                )
+            token, token_hash = _date_night_session_token()
+            await conn.execute(
+                "INSERT INTO date_night_sessions (token_hash, account_id, expires_at) VALUES ($1, $2, $3)",
+                token_hash,
+                account["id"],
+                dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=DATE_NIGHT_SESSION_DAYS),
+            )
+    _set_date_night_cookie(response, token)
+    return {"authenticated": True, "user": {"id": str(account["id"]), "email": account["email"], "display_name": account["display_name"]}}
+
+
+@app.post("/date-night/signin")
+async def date_night_signin(req: DateNightSignIn, request: Request, response: Response) -> dict[str, Any]:
+    email = _date_night_email(req.email)
+    pool = await _get_pool(request)
+    async with pool.acquire() as conn:
+        account = await conn.fetchrow("SELECT id, email, display_name, password_hash FROM date_night_accounts WHERE email = $1", email)
+        if not account or not _date_night_password_matches(req.password, account["password_hash"]):
+            raise HTTPException(status_code=401, detail="That email or password does not match an account.")
+        token, token_hash = _date_night_session_token()
+        await conn.execute(
+            "INSERT INTO date_night_sessions (token_hash, account_id, expires_at) VALUES ($1, $2, $3)",
+            token_hash, account["id"], dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=DATE_NIGHT_SESSION_DAYS),
+        )
+    _set_date_night_cookie(response, token)
+    return {"authenticated": True, "user": {"id": str(account["id"]), "email": account["email"], "display_name": account["display_name"]}}
+
+
+@app.post("/date-night/signout")
+async def date_night_signout(request: Request, response: Response) -> dict[str, bool]:
+    token = request.cookies.get("date_night_session", "")
+    if token:
+        pool = await _get_pool(request)
+        async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM date_night_sessions WHERE token_hash = $1", hashlib.sha256(token.encode("utf-8")).hexdigest())
+    response.delete_cookie("date_night_session", path="/")
+    return {"ok": True}
+
+
+@app.get("/date-night/rooms")
+async def date_night_rooms(request: Request) -> dict[str, list[dict[str, str]]]:
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT r.id, r.name FROM date_night_rooms r JOIN date_night_memberships m ON m.room_id = r.id WHERE m.account_id = $1 ORDER BY r.created_at",
+            user["id"],
+        )
+    return {"rooms": [{"id": str(row["id"]), "name": row["name"]} for row in rows]}
+
+
+@app.post("/date-night/rooms")
+async def date_night_create_room(req: DateNightRoomCreate, request: Request) -> dict[str, Any]:
+    name = _date_night_name(req.name)
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            room = await conn.fetchrow(
+                "INSERT INTO date_night_rooms (name, owner_id) VALUES ($1, $2) RETURNING id, name, owner_id",
+                name,
+                user["id"],
+            )
+            await conn.execute("INSERT INTO date_night_memberships (room_id, account_id) VALUES ($1, $2)", room["id"], user["id"])
+    return {"room": {"id": str(room["id"]), "name": room["name"], "owner_id": str(room["owner_id"])}}
+
+
+@app.get("/date-night/rooms/{room_id}")
+async def date_night_room(room_id: str, request: Request) -> dict[str, Any]:
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    room = await _date_night_require_member(pool, room_id, user["id"])
+    async with pool.acquire() as conn:
+        members = await conn.fetch("SELECT a.display_name FROM date_night_memberships m JOIN date_night_accounts a ON a.id = m.account_id WHERE m.room_id = $1::uuid ORDER BY m.joined_at", room_id)
+        messages = await conn.fetch("SELECT id, sender_name, kind, body, created_at FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at, id", room_id)
+    return {"room": {"id": str(room["id"]), "name": room["name"], "owner_id": str(room["owner_id"]), "members": [m["display_name"] for m in members]}, "messages": [_date_night_message(row) for row in messages]}
+
+
+@app.post("/date-night/rooms/{room_id}/messages")
+async def date_night_send_message(room_id: str, req: DateNightMessageCreate, request: Request) -> dict[str, Any]:
+    body = req.body.strip()
+    if not 1 <= len(body) <= 4000:
+        raise HTTPException(status_code=422, detail="Messages must be between 1 and 4,000 characters.")
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    await _date_night_require_member(pool, room_id, user["id"])
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "INSERT INTO date_night_messages (room_id, sender_id, sender_name, body) VALUES ($1::uuid, $2, $3, $4) RETURNING id, sender_name, kind, body, created_at",
+            room_id, user["id"], user["display_name"], body,
+        )
+    return {"message": _date_night_message(row)}
+
+
+@app.post("/date-night/rooms/{room_id}/invites")
+async def date_night_create_invite(room_id: str, req: DateNightInviteCreate, request: Request) -> dict[str, str]:
+    days = max(1, min(req.expires_in_days, 30))
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    room = await _date_night_require_member(pool, room_id, user["id"])
+    if str(room["owner_id"]) != str(user["id"]):
+        raise HTTPException(status_code=403, detail="Only the room owner can create invitations.")
+    token = secrets.token_urlsafe(24)
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO date_night_invites (token_hash, room_id, created_by, expires_at) VALUES ($1, $2::uuid, $3, $4)",
+            hashlib.sha256(token.encode("utf-8")).hexdigest(), room_id, user["id"], dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=days),
+        )
+    return {"invite_url": f"{str(request.base_url).rstrip('/')}/?invite={token}"}
+
+
+@app.post("/date-night/rooms/{room_id}/assistant")
+async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]:
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="The Date Night assistant is not configured yet.")
+    pool = await _get_pool(request)
+    user = await _date_night_user(request, pool)
+    await _date_night_require_member(pool, room_id, user["id"])
+    async with pool.acquire() as conn:
+        history = await conn.fetch("SELECT sender_name, body FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at DESC, id DESC LIMIT 30", room_id)
+    transcript = "\n".join(f"{row['sender_name']}: {row['body']}" for row in reversed(history))
+    prompt = "Based on our shared Date Night conversation, help us pick something to watch. Be warm, decisive, and brief. Ask one useful question if there is not enough information; otherwise recommend 3 specific options and explain each in one sentence."
+    answer = await asyncio.to_thread(
+        _call_openai_response,
+        api_key=OPENAI_API_KEY,
+        model=REASONING_MODEL,
+        query=prompt,
+        context=transcript or "No preferences yet.",
+    )
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "INSERT INTO date_night_messages (room_id, sender_name, kind, body) VALUES ($1::uuid, 'Date Night', 'assistant', $2) RETURNING id, sender_name, kind, body, created_at",
+            room_id, answer,
+        )
+    return {"message": _date_night_message(row)}
 
 
 @app.get("/config", response_model=PublicConfigResponse)
