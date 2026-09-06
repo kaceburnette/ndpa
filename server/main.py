@@ -36,11 +36,14 @@ import time
 import urllib.error
 import urllib.request
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 import asyncpg
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from server.hydration import hydrate_blob, write_blob
@@ -68,6 +71,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 REASONING_MODEL = os.environ.get("NDPA_REASONING_MODEL", "gpt-5-mini")
 REASONING_CONTEXT_CHARS = int(os.environ.get("NDPA_REASONING_CONTEXT_CHARS", "12000"))
 DATE_NIGHT_SESSION_DAYS = 30
+WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 CORS_ORIGINS = [
     origin.strip()
     for origin in os.environ.get("NDPA_CORS_ORIGINS", "*").split(",")
@@ -97,6 +101,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="NDPA Predictions API", version="2.0.0", lifespan=lifespan)
+app.mount("/assets", StaticFiles(directory=WEB_ROOT / "assets"), name="assets")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS or ["*"],
@@ -684,6 +689,17 @@ def _call_openai_response(
 
 
 # ── Date Night: private shared rooms ───────────────────────────────────────
+
+
+@app.get("/", include_in_schema=False)
+def date_night_page():
+    return FileResponse(WEB_ROOT / "index.html")
+
+
+@app.get("/console", include_in_schema=False)
+@app.get("/console.html", include_in_schema=False)
+def console_page():
+    return FileResponse(WEB_ROOT / "console.html")
 
 
 @app.get("/date-night/me")

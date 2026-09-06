@@ -30,7 +30,7 @@
   <div id="modal-layer" class="modal-layer hidden"><form id="modal-form" class="modal"><div id="modal-error" class="error hidden" role="alert"></div><h2 id="modal-title">Start a new night</h2><p id="modal-copy">Give this shared room a sweet name.</p><div id="modal-fields"></div><div class="modal-actions"><button id="modal-cancel" class="secondary" type="button">Cancel</button><button id="modal-submit" class="primary" type="submit" style="width:auto">Create room</button></div></form></div>
   <script>
   (() => {
-    const API = '/api', $ = id => document.getElementById(id);
+    const API = '', $ = id => document.getElementById(id);
     const state = { user:null, rooms:[], room:null };
     const request = async (path, options={}) => { const res = await fetch(API + path, {credentials:'same-origin', headers:{'Content-Type':'application/json', ...(options.headers||{})}, ...options}); const data = await res.json().catch(()=>({})); if (!res.ok) throw new Error(data.detail || data.error || 'Something went wrong. Please try again.'); return data; };
     const value = (obj, ...keys) => keys.map(k=>obj && obj[k]).find(v=>v !== undefined && v !== null);
