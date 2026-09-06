@@ -37,11 +37,12 @@ PQHR runs on two corpora. Both follow the same rule.
 - **Split (deterministic by question_id sort):**
   - **Validation:** first 100 synthetic users (≈ 3,700 samples). Use for grid
     search, prompt tuning, ablations.
-  - **Test:** remaining 400 synthetic users (≈ 15,073 samples). Reported
+  - **Test:** remaining 400 synthetic users (15,043 samples at W=10). Reported
     publicly. **No tuning decisions made on these samples.**
-- The published `pqhr@5 = 0.841` is computed on ALL 18,773 samples for the
-  legacy reference (predates split discipline). After this document lands,
-  subsequent published numbers must be on test-only and clearly labeled.
+- The current held-out result uses W=10: 3,730 validation samples and 15,043
+  test samples. NDPA trajectory ensemble scores `pqhr@5 = 0.8706` on test.
+- The earlier all-user adaptive `pqhr@5 = 0.8592` remains a legacy reference
+  in `eval/pre_query_hit_rate_results.json` and is not the primary headline.
 
 ### Real-user corpus (private)
 
@@ -84,11 +85,10 @@ PQHR runs on two corpora. Both follow the same rule.
 
 ## Reading the leaderboard after this lands
 
-Until each benchmark's test-only run is recomputed, published numbers in
-`docs/PQHR_LEADERBOARD.md` and `README.md` are on the full sample set (legacy).
-Once test-only numbers are computed, they become the primary headline and the
-full-sample number stays as a reproducibility check (always reproducible by
-`python3 -m eval.pre_query_hit_rate --public`).
+PQHR now reports the fixed 400-user test partition in `README.md` and
+`docs/PQHR_LEADERBOARD.md`. The full-sample number stays as a legacy
+reproducibility check. LongMemEval and LoCoMo retain their benchmark-specific
+split rules below.
 
 ---
 

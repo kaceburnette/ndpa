@@ -78,7 +78,8 @@ ADAPTIVE_TRAJECTORY_WINDOWS = (3, 5, 7, 10, 15)
 MIN_FUTURE_CHARS = 200         # skip trivial conversations
 MIN_PAST_CONVS = 10            # need enough history to have meaningful "past"
 PREDICTOR_TOPIC_TERMS = 250    # predictor-side cap; BM25 labels still use full text
-RESULTS_PATH = Path(__file__).with_name("pre_query_hit_rate_results.json")
+PUBLIC_VALIDATION_USERS = 100  # fixed by sorted question_id; remaining users are test
+RESULTS_PATH = Path(__file__).with_name("pre_query_hit_rate_holdout_results.json")
 ACCURACY_MODE_DEFAULT = "no-embedding"
 SEMANTIC_MODEL_DEFAULT = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -268,7 +269,6 @@ def multi_signal_predict(trajectory_window: int) -> Callable[[Counter, List[Conv
             trajectory_cache[trajectory_key] = (refs, Counter(dict(phrases.most_common(30))))
         trajectory_refs, trajectory_keyphrases = trajectory_cache[trajectory_key]
         trajectory_freq = Counter(dict(trajectory_bow.most_common(40)))
-
         scored = []
         trajectory_norm = vector_norm(trajectory_bow)
         for c in past:
@@ -287,6 +287,108 @@ def multi_signal_predict(trajectory_window: int) -> Callable[[Counter, List[Conv
             scored.append((c.session_id, score_value))
         scored.sort(key=lambda x: x[1], reverse=True)
         return [sid for sid, _ in scored[:k]]
+
+    return _predict
+
+
+def trajectory_pattern_predict(trajectory_window: int) -> Callable[[Counter, List[Conversation], int], List[str]]:
+    """Rank candidates by full-trajectory topic plus recent-session support."""
+    trajectory_cache: dict[tuple[str, ...], tuple[Counter, Counter]] = {}
+
+    def cached_refs(c: Conversation) -> Counter:
+        if c.session_id not in _REF_CACHE:
+            _REF_CACHE[c.session_id] = extract_refs(c.content)
+        return _REF_CACHE[c.session_id]
+
+    def cached_keyphrases(c: Conversation) -> Counter:
+        if c.session_id not in _KEYPHRASE_CACHE:
+            _KEYPHRASE_CACHE[c.session_id] = keyphrases(c.content)
+        return _KEYPHRASE_CACHE[c.session_id]
+
+    def _predict(trajectory_bow: Counter, past: List[Conversation], k: int) -> List[str]:
+        if not past:
+            return []
+        trajectory_bow = top_terms(trajectory_bow)
+        trajectory = past[-trajectory_window:]
+        trajectory_key = tuple(c.session_id for c in trajectory)
+        if trajectory_key not in trajectory_cache:
+            refs = Counter()
+            phrases = Counter()
+            for conversation in trajectory:
+                refs.update(cached_refs(conversation))
+                phrases.update(cached_keyphrases(conversation))
+            trajectory_cache[trajectory_key] = (refs, Counter(dict(phrases.most_common(30))))
+        trajectory_refs, trajectory_keyphrases = trajectory_cache[trajectory_key]
+        trajectory_freq = Counter(dict(trajectory_bow.most_common(40)))
+        trajectory_norm = vector_norm(trajectory_bow)
+        support_vector: Counter = Counter()
+        support_weights: dict[str, float] = {}
+        support_weight_total = 0.0
+        for index, conversation in enumerate(trajectory, start=1):
+            weight = float(index * index)
+            norm = conversation_norm(conversation)
+            if not norm:
+                continue
+            support_weights[conversation.session_id] = weight
+            support_weight_total += weight
+            for term, value in conversation.bow.items():
+                support_vector[term] += weight * value / norm
+
+        scored = []
+        for candidate in past:
+            candidate_norm = conversation_norm(candidate)
+            weighted_support = (
+                sum(value * support_vector.get(term, 0.0) for term, value in candidate.bow.items())
+                / candidate_norm
+                if candidate_norm
+                else 0.0
+            )
+            excluded_weight = support_weights.get(candidate.session_id, 0.0)
+            support_denominator = support_weight_total - excluded_weight
+            support_score = (
+                (weighted_support - excluded_weight) / support_denominator
+                if support_denominator > 0
+                else weighted_support / support_weight_total if support_weight_total else 0.0
+            )
+            topic = cosine_with_norm(
+                candidate.bow,
+                trajectory_bow,
+                candidate_norm,
+                trajectory_norm,
+            )
+            score_value = (
+                0.34 * topic
+                + 0.28 * support_score
+                + 0.16 * overlap_ratio(trajectory_freq, candidate.bow)
+                + 0.10 * overlap_ratio(trajectory_refs, cached_refs(candidate))
+                + 0.06 * overlap_ratio(trajectory_keyphrases, cached_keyphrases(candidate))
+                + 0.06 * temporal_coherence(candidate, trajectory)
+            )
+            scored.append((candidate.session_id, score_value))
+        scored.sort(key=lambda item: item[1], reverse=True)
+        return [session_id for session_id, _score in scored[:k]]
+
+    return _predict
+
+
+def trajectory_ensemble_predict(
+    trajectory_window: int,
+) -> Callable[[Counter, List[Conversation], int], List[str]]:
+    """Keep pure-topic rank one, then add trajectory-pattern coverage."""
+    coverage_predictor = trajectory_pattern_predict(trajectory_window)
+
+    def _predict(trajectory_bow: Counter, past: List[Conversation], k: int) -> List[str]:
+        if not past or k <= 0:
+            return []
+        topic_ranked = pure_topic_predict(trajectory_bow, past, k)
+        coverage_ranked = coverage_predictor(trajectory_bow, past, k)
+        selected = topic_ranked[:1]
+        for session_id in coverage_ranked + topic_ranked[1:]:
+            if session_id not in selected:
+                selected.append(session_id)
+            if len(selected) == k:
+                break
+        return selected
 
     return _predict
 
@@ -434,7 +536,16 @@ def evaluate_samples(samples: list, convs: list[Conversation], trajectory_window
         "heuristic": score(heuristic_predict, samples),
         "pure_topic": score(pure_topic_predict, samples),
         "multi_signal": score(multi_signal_predict(trajectory_window), samples),
+        "trajectory_pattern": score(trajectory_pattern_predict(trajectory_window), samples),
+        "trajectory_ensemble": score(trajectory_ensemble_predict(trajectory_window), samples),
     }
+
+
+def build_samples_for_users(users: dict[str, list[Conversation]], trajectory_window: int) -> list:
+    samples = []
+    for convs in users.values():
+        samples.extend(build_pqhr_samples(convs, trajectory_window))
+    return samples
 
 
 def semantic_embedding_predict(trajectory_window: int, model_name: str) -> Callable[[Counter, List[Conversation], int], List[str]]:
@@ -525,6 +636,8 @@ def print_scores(results: dict) -> None:
         ("heuristic (0.4r+0.6t)", results["heuristic"]),
         ("pure topic (BoW)", results["pure_topic"]),
         ("multi-signal (NDPA)", results["multi_signal"]),
+        ("trajectory pattern", results["trajectory_pattern"]),
+        ("trajectory ensemble", results["trajectory_ensemble"]),
     ]
     print(f"  {'predictor':<24}  pqhr@1   pqhr@3   pqhr@5    mrr@5   ndcg@5")
     for name, metrics in rows:
@@ -538,9 +651,7 @@ def run_adaptive_experiment(users: dict[str, list[Conversation]], public: bool) 
     windows = {}
     for window in ADAPTIVE_TRAJECTORY_WINDOWS:
         print(f"  scoring adaptive W={window} ...")
-        all_samples = []
-        for convs in users.values():
-            all_samples.extend(build_pqhr_samples(convs, window))
+        all_samples = build_samples_for_users(users, window)
         metrics = {}
         if all_samples:
             metrics = {
@@ -627,6 +738,27 @@ def load_public_conversations() -> dict[str, list["Conversation"]]:
     return users
 
 
+def split_public_users(
+    users: dict[str, list[Conversation]],
+    validation_user_count: int = PUBLIC_VALIDATION_USERS,
+) -> tuple[dict[str, list[Conversation]], dict[str, list[Conversation]]]:
+    """Return the fixed public PQHR validation/test split.
+
+    User IDs are sorted so the split is stable across Python versions and
+    input ordering.  Splitting by user prevents sessions from one synthetic
+    history appearing in both tuning and reported partitions.
+    """
+    user_ids = sorted(users)
+    if validation_user_count <= 0 or validation_user_count >= len(user_ids):
+        raise ValueError("validation_user_count must leave at least one user in each partition")
+    validation_ids = user_ids[:validation_user_count]
+    test_ids = user_ids[validation_user_count:]
+    return (
+        {user_id: users[user_id] for user_id in validation_ids},
+        {user_id: users[user_id] for user_id in test_ids},
+    )
+
+
 def run_public_pqhr(
     trajectory_window: int,
     adaptive_windows: bool,
@@ -644,52 +776,83 @@ def run_public_pqhr(
 
     users = load_public_conversations()
     print(f"Loaded {len(users)} synthetic users from LongMemEval")
+    validation_users, test_users = split_public_users(users)
+    validation_samples = build_samples_for_users(validation_users, trajectory_window)
+    test_samples = build_samples_for_users(test_users, trajectory_window)
 
-    all_samples = []
-    for qid, convs in users.items():
-        samples = build_pqhr_samples(convs, trajectory_window)
-        all_samples.extend(samples)
-
-    print(f"Total PQHR samples: {len(all_samples)}")
-    if not all_samples:
+    print(
+        f"Split users: {len(validation_users)} validation / {len(test_users)} test"
+    )
+    print(
+        f"Split samples: {len(validation_samples)} validation / {len(test_samples)} test"
+    )
+    if not test_samples:
         print("Not enough data.")
         return
     print()
 
-    all_convs = [c for convs in users.values() for c in convs]
-    metrics = evaluate_samples(all_samples, all_convs, trajectory_window)
+    validation_convs = [c for convs in validation_users.values() for c in convs]
+    test_convs = [c for convs in test_users.values() for c in convs]
+    validation_metrics = evaluate_samples(validation_samples, validation_convs, trajectory_window)
+    metrics = evaluate_samples(test_samples, test_convs, trajectory_window)
 
     print_scores(metrics)
-    maybe_add_accuracy_ablation(metrics, all_samples, trajectory_window, accuracy_mode, semantic_model)
-    lift = (metrics["multi_signal"]["pqhr@5"] - metrics["recency"]["pqhr@5"]) * 100
+    maybe_add_accuracy_ablation(metrics, test_samples, trajectory_window, accuracy_mode, semantic_model)
+    lift = (metrics["trajectory_ensemble"]["pqhr@5"] - metrics["recency"]["pqhr@5"]) * 100
     print()
     print(f"Lift over recency baseline @5: +{lift:.1f} pts")
     print()
-    print(f"  {len(users)} synthetic users · {len(all_samples)} samples")
+    print(f"  reported: {len(test_users)} test users · {len(test_samples)} test samples")
     print(f"  Ground truth: BM25 (independent from BoW cosine predictor)")
     print(f"  Reproducible: python3 -m eval.pre_query_hit_rate --public")
 
     payload = {
         "dataset": "longmemeval_public_s",
         "trajectory_window": trajectory_window,
-        "sample_count": len(all_samples),
-        "user_count": len(users),
+        "sample_count": len(test_samples),
+        "user_count": len(test_users),
+        "split": {
+            "policy": "sorted question_id",
+            "validation_user_count": len(validation_users),
+            "test_user_count": len(test_users),
+            "validation_sample_count": len(validation_samples),
+            "test_sample_count": len(test_samples),
+        },
         "ground_truth": "BM25 top-5",
         "predictor_discipline": "trajectory-only; predictors never see target/current conversation",
         "accuracy_mode": accuracy_mode,
         "default_no_embedding": accuracy_mode == ACCURACY_MODE_DEFAULT,
+        "validation_metrics": validation_metrics,
         "metrics": metrics,
+        "selection_note": (
+            "trajectory window 10 predates the fixed split; ensemble ordering and "
+            "trajectory-pattern weights were selected on validation users only"
+            if trajectory_window == 10
+            else "trajectory window supplied explicitly by the evaluator"
+        ),
     }
     if adaptive_windows:
         print()
         print("Adaptive trajectory window experiment")
-        experiment = run_adaptive_experiment(users, public=True)
+        experiment = run_adaptive_experiment(validation_users, public=True)
         payload["adaptive_trajectory_windows"] = experiment
+        best_window = experiment["best_multi_signal_window_by_pqhr@5"]
+        selected_test_metrics = evaluate_samples(
+            build_samples_for_users(test_users, best_window),
+            test_convs,
+            best_window,
+        )
+        payload["adaptive_selected_test_window"] = best_window
+        payload["adaptive_selected_test_metrics"] = selected_test_metrics
+        print(f"  selected on validation: W={best_window}")
         for window, row in experiment["windows"].items():
-            result = row["metrics"]["multi_signal"]
+            result = row["metrics"].get("multi_signal")
+            if not result:
+                continue
             print(
                 f"  W={window:<2} samples={row['sample_count']:<5} "
-                f"multi_signal pqhr@5={result['pqhr@5']:.4f} mrr@5={result['mrr@5']:.4f} ndcg@5={result['ndcg@5']:.4f}"
+                f"multi_signal pqhr@5={result['pqhr@5']:.4f} "
+                f"mrr@5={result['mrr@5']:.4f} ndcg@5={result['ndcg@5']:.4f}"
             )
     write_results(payload, output)
 

@@ -18,10 +18,11 @@ Honest setup details required.
 
 ## Dataset 1: Public synthetic users (LongMemEval-S, fully reproducible)
 
-500 synthetic users from the LongMemEval public dataset, 18,773 PQHR samples,
-trajectory window = 7, ground truth = BM25 top-5. Latest NDPA PQHR run was
-verified locally on 2026-05-14 and saved to
-`eval/pre_query_hit_rate_results.json`.
+500 synthetic users from the LongMemEval public dataset, ground truth = BM25
+top-5. The fixed split uses the first 100 sorted question IDs for validation
+and the remaining 400 users for the reported test result. The latest held-out
+run was verified locally on 2026-08-11 and saved to
+`eval/pre_query_hit_rate_holdout_results.json`.
 
 **Always cite random and recency baselines alongside.** Hit@5 has a high
 floor on this corpus because each user's candidate pool is small (~30–40
@@ -29,33 +30,39 @@ past conversations) and the truth set is top-5.
 
 | Rank | System | Version | pqhr@1 | pqhr@3 | pqhr@5 | Notes |
 |-----:|--------|---------|-------:|-------:|-------:|-------|
-|   1  | **NDPA (multi-signal)** | v11 | 0.368 | 0.688 | **0.846** | Topic frequency + refs + keyphrases + temporal coherence, BM25 labeler |
-|   2  | NDPA (heuristic) | v11 | 0.405 | 0.697 | 0.842 | 0.4 recency + 0.6 topic |
-|   3  | NDPA (pure topic) | v11 | **0.405** | **0.697** | 0.841 | BoW cosine predictor, BM25 labeler |
-|   4  | local lexical vector proxy | local-hash-512 | 0.434 | 0.695 | 0.796 | Hashed lexical vector cosine; no embedding API required |
-|   5  | local BM25 trajectory query | local | 0.386 | 0.689 | 0.779 | BM25 over past conversations using trajectory as query |
-|   6  | local TF-IDF | local | 0.253 | 0.594 | 0.749 | TF-IDF cosine over past conversations using trajectory as query |
-|  —   | Random baseline (sanity) | — | 0.205 | 0.505 | 0.688 | Uniform sample |
-|  —   | Recency baseline | — | 0.209 | 0.503 | 0.681 | Most-recent-K |
+|   1  | **NDPA trajectory ensemble** | v12 | **0.441** | 0.753 | **0.871** | Pure-topic rank-one anchor + trajectory-pattern coverage; W=10 |
+|   2  | NDPA trajectory pattern | v12 | 0.423 | **0.754** | **0.871** | Recent-session support + topic/refs/entities; W=10 |
+|   3  | NDPA pure topic | v12 | **0.441** | 0.739 | 0.861 | BoW cosine; W=10 |
+|   4  | NDPA multi-signal | v11 | 0.396 | 0.728 | 0.861 | Topic frequency + refs + keyphrases + temporal coherence; W=10 |
+|  —   | Random baseline (sanity) | — | 0.204 | 0.503 | 0.686 | Uniform sample |
+|  —   | Recency baseline | — | 0.209 | 0.504 | 0.682 | Most-recent-K |
 
-**Lift over recency @5: +16.5 points. Lift over random @5: +15.8 points.**
+**Held-out lift over recency @5: +18.9 points. Lift over random @5: +18.6
+points. At @1, the ensemble is 2.16x random.**
 
-Latest verified NDPA ranking metrics:
+### Legacy all-user reference
+
+The previous v11 table used all 500 users and predates enforced split
+discipline. Its best adaptive result was 0.859 pqhr@5 at W=10. It remains in
+`eval/pre_query_hit_rate_results.json` for reproducibility but is not the
+primary headline.
+
+Latest held-out NDPA ranking metrics:
 
 | System | mrr@5 | ndcg@5 |
 |--------|------:|-------:|
-| NDPA (multi-signal) | 0.543 | 0.353 |
-| NDPA (heuristic) | **0.565** | 0.362 |
-| NDPA (pure topic) | **0.565** | **0.362** |
-| Random baseline (sanity) | 0.374 | 0.212 |
+| NDPA trajectory ensemble | **0.604** | **0.397** |
+| NDPA trajectory pattern | 0.595 | 0.395 |
+| NDPA pure topic | 0.599 | 0.390 |
+| Random baseline (sanity) | 0.373 | 0.212 |
 | Recency baseline | 0.375 | 0.210 |
 
-**Caveat (honest):** random@5 is 68.7% on this corpus, so the absolute hit@5
+**Caveat (honest):** random@5 is 68.6% on the held-out corpus, so the absolute hit@5
 numbers look stronger than the underlying signal. Look at the @1 column for a
-cleaner discrimination: pure-topic NDPA 40.5% vs random 20.5% =
-**1.98× lift**, which is the more defensible headline.
+cleaner discrimination: held-out ensemble NDPA 44.1% vs random 20.4% =
+**2.16× lift**, which is the more defensible headline.
 
-Adaptive trajectory windows for NDPA multi-signal:
+Legacy all-user adaptive trajectory windows for NDPA multi-signal:
 
 | Window | Samples | pqhr@1 | pqhr@3 | pqhr@5 | mrr@5 | ndcg@5 |
 |-------:|--------:|-------:|-------:|-------:|------:|-------:|

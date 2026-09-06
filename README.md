@@ -69,23 +69,26 @@ predict-forward use case. Vector DBs and embedding-based memory systems
 
 ### Public dataset (LongMemEval-S, fully reproducible)
 
-500 synthetic users, 18,773 PQHR samples, BM25 labeler.
+Fixed held-out split: 100 validation users for tuning, 400 untouched test
+users, 15,043 test samples, BM25 labeler, trajectory window = 10.
 
-| Predictor | Window | pqhr@5 |
-|-----------|--------|--------|
-| Random (sanity check) | W=7 | 68.7% |
-| Recency-only baseline | W=7 | 68.0% |
-| **NDPA fixed multi-signal** | **W=7** | **84.6%** |
-| **NDPA adaptive multi-signal** | **W=10** | **85.9%** |
+| Predictor | pqhr@1 | pqhr@3 | pqhr@5 |
+|-----------|-------:|-------:|-------:|
+| Random (sanity check) | 20.4% | 50.3% | 68.6% |
+| Recency-only baseline | 20.9% | 50.4% | 68.2% |
+| Pure topic | **44.1%** | 73.9% | 86.1% |
+| Trajectory pattern | 42.3% | **75.4%** | **87.1%** |
+| **NDPA trajectory ensemble** | **44.1%** | **75.3%** | **87.1%** |
 
-**Lift @5: +17.9 pts over random for adaptive W=10; +16.6 pts over recency
-for fixed W=7.**
+**Held-out lift: +18.9 pts @5 over recency and 2.16x @1 over random.**
+The earlier all-user adaptive reference was 85.9% @5; it remains in the
+legacy result artifact but is no longer the primary headline.
 
-> ⚠️ random@5 is 68.7% on this corpus — small candidate pool per synthetic
+> ⚠️ random@5 is 68.6% on the held-out test corpus — small candidate pool per synthetic
 > user. Always show random + recency alongside NDPA. The @1 column is the
 > more honest headline.
 
-Reproduce: `python3 -m eval.pre_query_hit_rate --public`
+Reproduce: `python3 -m eval.pre_query_hit_rate --public --trajectory-window 10`
 
 ### Author's real-user corpus (internal validation, less externally verifiable)
 
