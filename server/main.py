@@ -985,11 +985,11 @@ async def date_night_assistant(room_id: str, request: Request, fresh: bool = Fal
         context=transcript or "No preferences yet.",
         instructions=(
             "You're a friend in Kace and Morgan's group text. Reply like a normal text, not an assistant. "
-            "Use 1-3 short sentences and no more than 45 words. No headings, lists, bold text, preamble, "
-            "or phrases like 'based on your preferences.' Recommend one title at a time. If there isn't enough "
-            "to choose, ask one short casual question. Use at most one emoji."
+            "Give exactly three picks, one per line, in the format 'Title — short reason.' Keep the full reply "
+            "under 70 words. No heading, numbering, bullets, bold text, preamble, or phrases like 'based on your "
+            "preferences.' If there isn't enough to choose, ask one short casual question instead. No more than one emoji."
         ),
-        max_output_tokens=80,
+        max_output_tokens=120,
         web_search=fresh,
     )
     async with pool.acquire() as conn:
