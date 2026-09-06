@@ -324,6 +324,11 @@ class DateNightCredentials(BaseModel):
     invite_token: str | None = None
 
 
+class DateNightEasyJoin(BaseModel):
+    display_name: str
+    invite_token: str | None = None
+
+
 class DateNightSignIn(BaseModel):
     email: str
     password: str
@@ -756,6 +761,18 @@ async def date_night_bootstrap(req: DateNightCredentials, request: Request, resp
             )
     _set_date_night_cookie(response, token)
     return {"authenticated": True, "user": {"id": str(account["id"]), "email": account["email"], "display_name": account["display_name"]}}
+
+
+@app.post("/date-night/easy-join")
+async def date_night_easy_join(req: DateNightEasyJoin, request: Request, response: Response) -> dict[str, Any]:
+    """Create the first private room or accept an invitation without credentials."""
+    credentials = DateNightCredentials(
+        email=f"room-{secrets.token_urlsafe(18).lower()}@date-night.local",
+        password=secrets.token_urlsafe(32),
+        display_name=req.display_name,
+        invite_token=req.invite_token,
+    )
+    return await date_night_bootstrap(credentials, request, response)
 
 
 @app.post("/date-night/signin")
