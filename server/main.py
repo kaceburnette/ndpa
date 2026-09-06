@@ -69,7 +69,7 @@ STRIPE_PAYMENT_LINK = os.environ.get("NDPA_STRIPE_PAYMENT_LINK", "")
 ADMIN_TOKEN = os.environ.get("NDPA_ADMIN_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 REASONING_MODEL = os.environ.get("NDPA_REASONING_MODEL", "gpt-5.4-mini")
-DATE_NIGHT_MODEL = "gpt-5-mini"
+DATE_NIGHT_MODEL = "gpt-4o-mini"
 REASONING_CONTEXT_CHARS = int(os.environ.get("NDPA_REASONING_CONTEXT_CHARS", "12000"))
 DATE_NIGHT_SESSION_DAYS = 30
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
@@ -664,10 +664,12 @@ def _call_openai_response(
     model: str,
     query: str,
     context: str,
+    instructions: str | None = None,
+    max_output_tokens: int | None = None,
 ) -> str:
     body = {
         "model": model,
-        "instructions": (
+        "instructions": instructions or (
             "You are NDPA Reasoning. Answer using only the retrieved memory "
             "context. If the context is insufficient, say what is missing. "
             "Be concise and preserve dates, names, numbers, and user preferences."
@@ -680,6 +682,8 @@ def _call_openai_response(
             "Answer:"
         ),
     }
+    if max_output_tokens is not None:
+        body["max_output_tokens"] = max_output_tokens
     req = urllib.request.Request(
         "https://api.openai.com/v1/responses",
         data=json.dumps(body).encode("utf-8"),
@@ -965,19 +969,20 @@ async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]
     async with pool.acquire() as conn:
         history = await conn.fetch("SELECT sender_name, body FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at DESC, id DESC LIMIT 30", room_id)
     transcript = "\n".join(f"{row['sender_name']}: {row['body']}" for row in reversed(history))
-    prompt = (
-        "You are the helpful friend in Kace and Morgan's private group text. Help them pick a movie or show "
-        "from what they have both said. Sound natural, warm, and a little playful. Never mention being an AI. "
-        "Do not use headings, markdown, or canned introductions. Keep the whole reply under 100 words and use "
-        "at most one emoji. If you need more information, ask one short question. Otherwise choose one best pick "
-        "and give two brief backups, with a specific reason each fits both people."
-    )
+    prompt = "Read the group text and help us decide what to watch next."
     answer = await asyncio.to_thread(
         _call_openai_response,
         api_key=OPENAI_API_KEY,
         model=DATE_NIGHT_MODEL,
         query=prompt,
         context=transcript or "No preferences yet.",
+        instructions=(
+            "You're a friend in Kace and Morgan's group text. Reply like a normal text, not an assistant. "
+            "Use 1-3 short sentences and no more than 45 words. No headings, lists, bold text, preamble, "
+            "or phrases like 'based on your preferences.' Recommend one title at a time. If there isn't enough "
+            "to choose, ask one short casual question. Use at most one emoji."
+        ),
+        max_output_tokens=80,
     )
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
