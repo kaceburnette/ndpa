@@ -666,6 +666,7 @@ def _call_openai_response(
     context: str,
     instructions: str | None = None,
     max_output_tokens: int | None = None,
+    web_search: bool = False,
 ) -> str:
     body = {
         "model": model,
@@ -684,6 +685,8 @@ def _call_openai_response(
     }
     if max_output_tokens is not None:
         body["max_output_tokens"] = max_output_tokens
+    if web_search:
+        body["tools"] = [{"type": "web_search", "search_context_size": "low"}]
     req = urllib.request.Request(
         "https://api.openai.com/v1/responses",
         data=json.dumps(body).encode("utf-8"),
@@ -960,7 +963,7 @@ async def date_night_create_invite(room_id: str, req: DateNightInviteCreate, req
 
 
 @app.post("/date-night/rooms/{room_id}/assistant")
-async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]:
+async def date_night_assistant(room_id: str, request: Request, fresh: bool = False) -> dict[str, Any]:
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=503, detail="The Date Night assistant is not configured yet.")
     pool = await _get_pool(request)
@@ -969,11 +972,15 @@ async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]
     async with pool.acquire() as conn:
         history = await conn.fetch("SELECT sender_name, body FROM date_night_messages WHERE room_id = $1::uuid ORDER BY created_at DESC, id DESC LIMIT 30", room_id)
     transcript = "\n".join(f"{row['sender_name']}: {row['body']}" for row in reversed(history))
-    prompt = "Read the group text and help us decide what to watch next."
+    prompt = (
+        "Search for current and recently released movies or shows, then use the group text to pick one."
+        if fresh
+        else "Read the group text and help us decide what to watch next."
+    )
     answer = await asyncio.to_thread(
         _call_openai_response,
         api_key=OPENAI_API_KEY,
-        model=DATE_NIGHT_MODEL,
+        model="gpt-4.1-mini" if fresh else DATE_NIGHT_MODEL,
         query=prompt,
         context=transcript or "No preferences yet.",
         instructions=(
@@ -983,6 +990,7 @@ async def date_night_assistant(room_id: str, request: Request) -> dict[str, Any]
             "to choose, ask one short casual question. Use at most one emoji."
         ),
         max_output_tokens=80,
+        web_search=fresh,
     )
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
