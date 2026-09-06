@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/api/(.*)", "destination": "/api/index.py?route=/$1" },
     { "source": "/assets/(.*)", "destination": "/web/assets/$1" },
     { "source": "/console", "destination": "/web/console.html" },
     { "source": "/console.html", "destination": "/web/console.html" },
